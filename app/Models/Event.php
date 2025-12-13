@@ -12,6 +12,11 @@ class Event extends Model
         'date',
         'location',
         'poster_url',
-        'user_id'
+        'user_id',
+        'status',       // ✅ TAMBAHAN
+    ];
+
+    protected $casts = [
+        'date' => 'date',
     ];
 }

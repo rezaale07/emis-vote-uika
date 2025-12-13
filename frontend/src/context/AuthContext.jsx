@@ -4,14 +4,17 @@ export const AuthContext = createContext();
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
 
   // Load user saat refresh
   useEffect(() => {
     const saved = localStorage.getItem("user");
-    if (saved) setUser(JSON.parse(saved));
+    if (saved) {
+      setUser(JSON.parse(saved));
+    }
+    setLoadingAuth(false);
   }, []);
 
-  // LOGIN
   const login = (data) => {
     const payload = {
       id: data.user.id,
@@ -19,37 +22,31 @@ export default function AuthProvider({ children }) {
       email: data.user.email,
       username: data.user.username,
       role: data.user.role,
-      token: data.token,
-      avatar: data.user.avatar ?? null, // <--- FIX PENTING
+      avatar: data.user.avatar ?? null,
     };
 
-    console.log("LOGIN PAYLOAD:", payload);
-
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user_id", String(data.user.id));
     localStorage.setItem("user", JSON.stringify(payload));
+
     setUser(payload);
   };
 
-  // UPDATE USER PROFIL
   const updateUser = (updatedUser) => {
-    const newUser = {
-      ...user,
-      ...updatedUser, // merge avatar & name baru
-    };
-
-    console.log("UPDATE USER:", newUser);
-
+    const newUser = { ...user, ...updatedUser };
     localStorage.setItem("user", JSON.stringify(newUser));
     setUser(newUser);
   };
 
-  // LOGOUT
   const logout = () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("user_id");
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loadingAuth }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,9 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import api, { submitVote } from "../services/api";
 import StudentNavbar from "../components/StudentNavbar";
 import Container from "../components/Container";
+import Swal from "sweetalert2";
 
 export default function StudentVoteDetail() {
-  const { id } = useParams(); // voting_id
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [voting, setVoting] = useState(null);
@@ -14,26 +15,68 @@ export default function StudentVoteDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Load detail voting
+  const userId = Number(localStorage.getItem("user_id"));
+
+  // ========================= LOAD DATA =========================
   useEffect(() => {
     setLoading(true);
+
     api
       .get(`/votings/${id}`)
-      .then((res) => setVoting(res.data))
-      .catch((err) => {
-        console.error(err);
+      .then((res) => {
+        const data = res.data;
+        setVoting(data);
+
+        // Jika backend mengirim info bahwa user sudah vote
+        if (data.has_voted && data.voted_option_id) {
+          setSelectedId(data.voted_option_id);
+        }
+      })
+      .catch(() => {
         setVoting(null);
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Memuat",
+          text: "Voting tidak ditemukan atau terjadi kesalahan.",
+          confirmButtonColor: "#2563eb",
+        });
       })
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleVote = async () => {
-    if (!selectedId || !voting) return;
+  const alreadyVoted =
+    Boolean(voting?.has_voted) || Boolean(voting?.voted_option_id);
 
-    const userId = Number(localStorage.getItem("user_id"));
-    if (!userId) {
-      alert("Sesi login Anda berakhir. Silakan login ulang.");
-      return navigate("/login");
+  const isActive = voting?.status === "active";
+  const options = voting?.options || [];
+
+  // ========================= KIRIM SUARA =========================
+  const handleVote = async () => {
+    if (alreadyVoted) {
+      return Swal.fire({
+        icon: "info",
+        title: "Kamu sudah memilih",
+        text: "Kamu sudah memberikan suara untuk voting ini.",
+        confirmButtonColor: "#2563eb",
+      });
+    }
+
+    if (!isActive) {
+      return Swal.fire({
+        icon: "warning",
+        title: "Voting tidak aktif",
+        text: "Voting ini sudah tidak aktif. Kamu tidak dapat mengirim suara.",
+        confirmButtonColor: "#2563eb",
+      });
+    }
+
+    if (!selectedId) {
+      return Swal.fire({
+        icon: "warning",
+        title: "Belum memilih kandidat",
+        text: "Silakan pilih salah satu kandidat terlebih dahulu.",
+        confirmButtonColor: "#2563eb",
+      });
     }
 
     setSubmitting(true);
@@ -46,239 +89,255 @@ export default function StudentVoteDetail() {
         user_id: userId,
       });
 
-      // kecilin delay biar kerasa "smooth"
-      setTimeout(() => {
-        navigate(`/student/voting/${id}/results`);
-      }, 350);
-    } catch (err) {
-      console.error(err);
+      await Swal.fire({
+        icon: "success",
+        title: "Suara terkirim",
+        text: "Terima kasih, suara kamu berhasil direkam.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
 
-      if (err.response?.status === 409) {
-        setErrorMsg("Anda sudah pernah memberikan suara pada voting ini.");
-      } else if (err.response?.status === 422) {
-        const msg =
-          err.response?.data?.message ||
-          Object.values(err.response?.data?.errors || {})[0]?.[0] ||
-          "Voting tidak dapat diproses.";
-        setErrorMsg(msg);
-      } else if (err.response?.data?.message) {
-        setErrorMsg(err.response.data.message);
+      navigate(`/student/voting/${id}/results`);
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || "Gagal mengirim suara.";
+
+      setErrorMsg(msg);
+
+      if (status === 409) {
+        // Sudah pernah vote
+        await Swal.fire({
+          icon: "info",
+          title: "Sudah pernah memilih",
+          text:
+            msg ||
+            "Sistem mendeteksi kamu sudah pernah memberikan suara untuk voting ini.",
+          confirmButtonColor: "#2563eb",
+        });
+
+        navigate(`/student/voting/${id}/results`);
       } else {
-        setErrorMsg("Gagal mengirim suara. Coba lagi beberapa saat.");
+        Swal.fire({
+          icon: "error",
+          title: "Gagal",
+          text: msg,
+          confirmButtonColor: "#2563eb",
+        });
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ================= LOADING & NOT FOUND =================
+  // ========================= LOADING STATE =========================
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-pulse text-center space-y-3">
-          <div className="h-6 w-64 bg-slate-300 rounded mx-auto" />
-          <div className="h-6 w-40 bg-slate-200 rounded mx-auto" />
-        </div>
+      <div className="min-h-screen bg-slate-50">
+        <StudentNavbar />
+        <Container className="py-10">
+          <div className="animate-pulse space-y-6">
+            <div className="h-6 w-48 bg-slate-200 rounded" />
+            <div className="h-40 bg-slate-300 rounded-2xl" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="h-28 bg-slate-200 rounded-2xl" />
+              <div className="h-28 bg-slate-200 rounded-2xl" />
+            </div>
+          </div>
+        </Container>
       </div>
     );
   }
 
+  // ========================= TIDAK ADA VOTING =========================
   if (!voting) {
     return (
       <div className="min-h-screen bg-slate-50">
         <StudentNavbar />
-        <Container className="py-16 text-center">
-          <h1 className="text-2xl font-semibold text-slate-800 mb-2">
+        <Container className="py-14 text-center">
+          <h1 className="text-xl font-semibold text-slate-800">
             Voting tidak ditemukan
           </h1>
-          <p className="text-slate-500 mb-6">
-            Voting yang Anda cari mungkin sudah dihapus atau tidak tersedia.
-          </p>
           <button
             onClick={() => navigate("/student/voting")}
-            className="inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition"
           >
-            ← Kembali ke daftar voting
+            Kembali ke daftar voting
           </button>
         </Container>
       </div>
     );
   }
 
-  const options = voting.options || [];
-  const selectedOption = options.find((o) => o.id === selectedId);
-  const isActive = voting.status === "active";
+  const statusBadgeClass =
+    voting.status === "active"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : voting.status === "closed"
+      ? "bg-red-50 text-red-600 border-red-200"
+      : "bg-slate-100 text-slate-600 border-slate-200";
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 fade-in">
       <StudentNavbar />
 
       <Container className="py-8 md:py-10">
-        {/* BACK */}
+        {/* Back */}
         <button
           onClick={() => navigate("/student/voting")}
-          className="mb-6 inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-700"
+          className="mb-6 text-xs text-slate-600 hover:text-slate-800"
         >
           ← Kembali ke daftar voting
         </button>
 
-        {/* HEADER */}
-        <div className="mb-8 md:mb-10">
-          <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-500 uppercase">
-            Voting Kampus
-          </p>
-          <h1 className="mt-2 text-3xl md:text-4xl font-bold text-slate-900">
-            {voting.title}
-          </h1>
-          {voting.description && (
-            <p className="mt-2 text-slate-600 max-w-2xl text-sm md:text-base">
-              {voting.description}
-            </p>
-          )}
+        {/* HEADER VOTING */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">
+              {voting.title}
+            </h1>
+            {voting.description && (
+              <p className="text-slate-600 mt-2 text-sm md:text-base">
+                {voting.description}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col items-start md:items-end gap-2">
+            <span
+              className={`inline-flex items-center px-3 py-1.5 text-[11px] md:text-xs font-semibold rounded-full border ${statusBadgeClass}`}
+            >
+              {voting.status?.toUpperCase()}
+            </span>
+
+            {alreadyVoted && (
+              <span className="text-[11px] md:text-xs font-medium text-blue-600">
+                Kamu sudah memberikan suara. Kamu masih bisa melihat pilihanmu
+                dan hasil voting.
+              </span>
+            )}
+          </div>
         </div>
 
         {/* POSTER */}
         {voting.poster_url && (
-          <div className="mb-10">
-            <div className="overflow-hidden rounded-3xl shadow-xl border border-slate-200 bg-slate-100">
-              <img
-                src={voting.poster_url}
-                alt="Poster voting"
-                className="w-full max-h-[320px] object-cover"
-              />
-            </div>
-          </div>
+          <img
+            src={voting.poster_url}
+            className="w-full rounded-2xl mt-6 shadow border"
+            alt="Voting Poster"
+          />
         )}
 
-        {/* KANDIDAT TITLE */}
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl md:text-2xl font-semibold text-slate-900">
-            Pilih Kandidat
+        {/* KANDIDAT */}
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-slate-900">
+            {alreadyVoted ? "Pilihan Kamu" : "Pilih Kandidat"}
           </h2>
-          {!isActive && (
-            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-              Voting tidak aktif
-            </span>
+          <p className="text-xs text-slate-500 mt-1">
+            {alreadyVoted
+              ? "Kamu sudah memilih, namun tetap bisa melihat kembali kandidat yang kamu pilih."
+              : isActive
+              ? "Klik salah satu kandidat untuk memilih. Kamu hanya bisa memilih satu kandidat."
+              : "Voting tidak aktif. Kamu tidak dapat mengirim suara."}
+          </p>
+
+          {options.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500 italic">
+              Belum ada kandidat untuk voting ini.
+            </p>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-6 mt-5">
+              {options.map((opt) => {
+                const isSelected = selectedId === opt.id;
+
+                return (
+                  <div
+                    key={opt.id}
+                    onClick={() =>
+                      !alreadyVoted && isActive && setSelectedId(opt.id)
+                    }
+                    className={[
+                      "p-5 rounded-2xl border bg-white shadow-sm transition",
+                      alreadyVoted
+                        ? "opacity-80 cursor-default"
+                        : "cursor-pointer hover:shadow-md hover:-translate-y-[2px]",
+                      isSelected
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-slate-200",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center gap-4">
+                      <img
+                        src={
+                          opt.photo_url ||
+                          "https://source.unsplash.com/80x80/?person,face"
+                        }
+                        alt={opt.name}
+                        className="w-14 h-14 rounded-full object-cover border shadow-sm bg-slate-100"
+                      />
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {opt.name}
+                        </p>
+                        {opt.bio && (
+                          <p className="text-slate-500 text-xs mt-1 line-clamp-2">
+                            {opt.bio}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {isSelected && (
+                      <p className="mt-3 text-xs font-medium text-blue-600">
+                        ✓ Kandidat terpilih
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
-        {/* LIST KANDIDAT */}
-        <div className="grid sm:grid-cols-2 gap-6 md:gap-8">
-          {options.map((opt) => {
-            const isSelected = selectedId === opt.id;
-
-            return (
-              <button
-                type="button"
-                key={opt.id}
-                disabled={!isActive}
-                onClick={() => isActive && setSelectedId(opt.id)}
-                className={[
-                  "group relative text-left rounded-2xl border bg-white p-5 md:p-6 shadow-sm transition-all duration-200",
-                  !isActive
-                    ? "opacity-60 cursor-not-allowed"
-                    : "cursor-pointer hover:shadow-lg",
-                  isSelected
-                    ? "border-blue-500 ring-2 ring-blue-100 bg-blue-50/40"
-                    : "border-slate-200 hover:border-blue-300",
-                ].join(" ")}
-              >
-                <div className="flex items-center gap-4 md:gap-5">
-                  {/* FOTO */}
-                  {opt.photo_url ? (
-                    <img
-                      src={opt.photo_url}
-                      alt={opt.name}
-                      className={[
-                        "w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border-2",
-                        isSelected
-                          ? "border-blue-500 shadow-lg"
-                          : "border-white shadow-md",
-                      ].join(" ")}
-                    />
-                  ) : (
-                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-blue-100 flex items-center justify-center text-xl md:text-2xl font-bold text-blue-700">
-                      {opt.name?.[0] || "?"}
-                    </div>
-                  )}
-
-                  {/* INFO */}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3
-                        className={[
-                          "text-base md:text-lg font-semibold",
-                          isSelected ? "text-blue-700" : "text-slate-900",
-                        ].join(" ")}
-                      >
-                        {opt.name}
-                      </h3>
-                    </div>
-                    <p className="mt-1 text-xs md:text-sm text-slate-600 line-clamp-3">
-                      {opt.bio || "Tidak ada deskripsi kandidat."}
-                    </p>
-                  </div>
-                </div>
-
-                {isSelected && (
-                  <div className="mt-3 text-[11px] font-medium text-blue-600 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    Kandidat terpilih
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ACTION BAR */}
-        <div className="mt-8 md:mt-10 border-t border-slate-200 pt-6 md:pt-8">
+        {/* BOTTOM ACTION */}
+        <div className="mt-10 pt-5 border-t">
           {errorMsg && (
-            <div className="mb-4 text-sm text-rose-700 bg-rose-50 border border-rose-100 rounded-xl px-4 py-2">
-              {errorMsg}
-            </div>
+            <p className="text-red-500 text-sm mb-3">{errorMsg}</p>
           )}
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-xs md:text-sm text-slate-500">
-              {selectedOption ? (
-                <>
-                  Anda akan memberikan suara untuk{" "}
-                  <span className="font-semibold text-slate-800">
-                    {selectedOption.name}
-                  </span>
-                  . Pastikan pilihan Anda sudah benar.
-                </>
-              ) : (
-                "Pilih salah satu kandidat terlebih dahulu untuk mengirim suara."
-              )}
-            </div>
-
+          {alreadyVoted ? (
             <button
-              type="button"
+              onClick={() => navigate(`/student/voting/${id}/results`)}
+              className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition shadow"
+            >
+              Lihat Hasil Voting →
+            </button>
+          ) : (
+            <button
               disabled={!selectedId || submitting || !isActive}
               onClick={handleVote}
               className={[
-                "inline-flex items-center justify-center rounded-xl px-6 py-2.5 text-sm font-semibold transition",
-                !selectedId || !isActive
+                "px-6 py-2.5 rounded-xl text-sm font-semibold shadow",
+                !selectedId || !isActive || submitting
                   ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-lg",
-                submitting && "opacity-80 cursor-wait",
+                  : "bg-blue-600 text-white hover:bg-blue-700",
               ].join(" ")}
             >
-              {submitting
-                ? "Mengirim suara..."
-                : selectedOption
-                ? `Kirim Suara untuk ${selectedOption.name}`
-                : "Pilih Kandidat Terlebih Dahulu"}
+              {submitting ? "Mengirim..." : "Kirim Suara"}
             </button>
-          </div>
+          )}
         </div>
       </Container>
 
-      <footer className="text-center text-[11px] text-slate-400 border-t py-4 mt-6">
-        © UIKA IT Division — All Rights Reserved
+      <footer className="text-center text-xs text-slate-400 py-6">
+        © UIKA IT Division
       </footer>
+
+      <style>{`
+        .fade-in { animation: fadeIn .3s ease-out; }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(5px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

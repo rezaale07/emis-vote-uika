@@ -75,6 +75,12 @@ Route::delete('/votings/{id}/options/{optionId}', [VoteOptionController::class, 
 // ========================
 Route::post('/votes', [VoteController::class, 'store']);
 
+// ========================
+// CHECK USER VOTE
+// ========================
+Route::get('/votes/check', [VoteController::class, 'check']);
+
+
 
 // ========================
 // STUDENTS CRUD
@@ -91,3 +97,9 @@ Route::delete('/students/{id}', [StudentController::class,'destroy']);
 // ========================
 Route::get('/users/{id}/history', [RegistrationController::class, 'history']);
 Route::post('/students/{id}/update-profile', [StudentController::class, 'updateProfile']);
+
+// REPORTS
+Route::get('/reports/summary', [ReportController::class, 'summary']);
+Route::get('/reports/event-participation', [ReportController::class, 'eventParticipation']);
+Route::get('/reports/voting-participation', [ReportController::class, 'votingParticipation']);
+Route::get('/reports/monthly-trends', [ReportController::class, 'monthlyTrends']);

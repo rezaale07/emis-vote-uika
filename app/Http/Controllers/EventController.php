@@ -10,6 +10,7 @@ class EventController extends Controller
 {
     public function index()
     {
+        // Bisa langsung return, status ikut dari DB
         return response()->json(Event::latest()->get());
     }
 
@@ -21,6 +22,7 @@ class EventController extends Controller
             'date'        => 'required|date',
             'location'    => 'required|string|max:255',
             'poster'      => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
+            'status'      => 'nullable|in:active,expired', // ✅
         ]);
 
         $posterUrl = null;
@@ -36,6 +38,7 @@ class EventController extends Controller
             'date'        => $validated['date'],
             'location'    => $validated['location'],
             'poster_url'  => $posterUrl,
+            'status'      => $validated['status'] ?? 'active', // ✅ default active
         ]);
 
         return response()->json(['event' => $event], 201);
@@ -56,12 +59,14 @@ class EventController extends Controller
             'date'        => 'nullable|date',
             'location'    => 'nullable|string|max:255',
             'poster'      => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
+            'status'      => 'nullable|in:active,expired', // ✅
         ]);
 
+        // handle poster
         if ($request->hasFile('poster')) {
 
             if ($event->poster_url) {
-                $old = str_replace(url('storage').'/','',$event->poster_url);
+                $old = str_replace(url('storage') . '/', '', $event->poster_url);
                 Storage::disk('public')->delete($old);
             }
 
@@ -79,7 +84,7 @@ class EventController extends Controller
         $event = Event::findOrFail($id);
 
         if ($event->poster_url) {
-            $old = str_replace(url('storage').'/','',$event->poster_url);
+            $old = str_replace(url('storage') . '/', '', $event->poster_url);
             Storage::disk('public')->delete($old);
         }
 

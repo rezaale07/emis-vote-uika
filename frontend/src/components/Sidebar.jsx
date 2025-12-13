@@ -1,123 +1,59 @@
 import { NavLink } from "react-router-dom";
-import { useContext, useState } from "react";
+import { useContext } from "react";
+import Swal from "sweetalert2";
 import { AuthContext } from "../context/AuthContext";
 
 export default function Sidebar() {
-  const { logout } = useContext(AuthContext);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { user, logout } = useContext(AuthContext);
 
-  const linkStyle = ({ isActive }) =>
-    `block rounded-lg px-3 py-2 text-sm font-medium transition ${
-      isActive
-        ? "bg-blue-600 text-white shadow"
-        : "text-gray-700 hover:bg-gray-100"
-    }`;
+  // 🚨 Jika bukan admin, jangan tampilkan sidebar
+  if (!user || user.role !== "admin") return null;
+
+  const menu = [
+    { label: "Dashboard", to: "/admin" },
+    { label: "Manage Events", to: "/admin/events" },
+    { label: "Manage Voting", to: "/admin/voting" },
+    { label: "Manage Students", to: "/admin/students" },
+  ];
 
   const confirmLogout = () => {
-    logout(); // context handle localStorage + redirect
-    setShowLogoutModal(false);
+    Swal.fire({
+      title: "Keluar dari akun?",
+      text: "Anda akan logout dari dashboard admin.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, Logout",
+      cancelButtonText: "Batal",
+    }).then(res => res.isConfirmed && logout());
   };
 
   return (
-    <>
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r h-screen flex flex-col justify-between">
+    <aside className="w-64 bg-white border-r border-slate-200 h-screen fixed left-0 top-0 p-6 flex flex-col z-40">
+      <h1 className="text-xl font-semibold mb-8 text-slate-800">Admin</h1>
 
-        {/* MENU ATAS */}
-        <div>
-          <div className="px-4 py-4 text-lg font-semibold text-gray-800">
-            Admin
-          </div>
-
-          <nav className="px-2 space-y-1">
-            <NavLink to="/admin" end className={linkStyle}>
-              Dashboard
-            </NavLink>
-            <NavLink to="/admin/events" className={linkStyle}>
-              Manage Events
-            </NavLink>
-            <NavLink to="/admin/voting" className={linkStyle}>
-              Manage Voting
-            </NavLink>
-            <NavLink to="/admin/students" className={linkStyle}>
-              Manage Students
-            </NavLink>
-            <NavLink to="/admin/results" className={linkStyle}>
-              Reports
-            </NavLink>
-          </nav>
-        </div>
-
-        {/* BUTTON LOGOUT DI BAWAH */}
-        <div className="p-3 border-t">
-          <button
-            onClick={() => setShowLogoutModal(true)}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-red-100 text-red-600 hover:bg-red-200 transition"
+      <nav className="flex-1 space-y-1">
+        {menu.map(item => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end
+            className={({ isActive }) =>
+              isActive
+                ? "block px-4 py-2.5 rounded-lg bg-blue-600 text-white shadow-sm"
+                : "block px-4 py-2.5 rounded-lg text-slate-700 hover:bg-slate-100"
+            }
           >
-            Logout
-          </button>
-        </div>
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
 
-      </aside>
-
-      {/* MODAL LOGOUT */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          
-          {/* BACKDROP */}
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn"
-            onClick={() => setShowLogoutModal(false)}
-          />
-
-          {/* MODAL BOX */}
-          <div className="relative bg-white w-80 rounded-2xl shadow-xl p-6 text-center animate-scaleIn">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Logout Admin?
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Apakah kamu yakin ingin keluar dari panel admin?
-            </p>
-
-            <div className="mt-5 flex gap-3">
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="flex-1 py-2 rounded-xl border hover:bg-gray-50 transition"
-              >
-                Batal
-              </button>
-
-              <button
-                onClick={confirmLogout}
-                className="flex-1 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Animations */}
-      <style>{`
-        .animate-fadeIn {
-          animation: fadeIn .2s ease-out;
-        }
-
-        .animate-scaleIn {
-          animation: scaleIn .25s ease-out;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes scaleIn {
-          from { transform: scale(.85); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
-    </>
+      <button
+        onClick={confirmLogout}
+        className="mt-auto bg-red-100 text-red-600 px-4 py-2 rounded-lg hover:bg-red-200 transition font-medium"
+      >
+        Logout
+      </button>
+    </aside>
   );
 }

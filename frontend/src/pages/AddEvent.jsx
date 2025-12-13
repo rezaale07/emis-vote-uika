@@ -3,40 +3,57 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+import Swal from "sweetalert2";
 
 export default function AddEvent() {
   const navigate = useNavigate();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    date: "",
+    location: "",
+  });
+
   const [poster, setPoster] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Cleanup preview URL agar tidak bocor memory
+  // Cleanup preview memory leak
   useEffect(() => {
     return () => {
       if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
+  const updateForm = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handlePosterChange = (e) => {
     const file = e.target.files[0];
-
     if (!file) return;
 
-    // Validasi ukuran file (max 4MB sesuai Laravel)
+    // VALIDASI SIZE
     if (file.size > 4 * 1024 * 1024) {
-      alert("Ukuran gambar maksimal 4MB");
+      Swal.fire({
+        icon: "warning",
+        title: "File terlalu besar!",
+        text: "Ukuran poster maksimal 4MB.",
+        confirmButtonColor: "#2563eb",
+      });
       return;
     }
 
-    // Validasi jenis file
+    // VALIDASI FORMAT
     const allowed = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowed.includes(file.type)) {
-      alert("Poster harus berupa JPG / JPEG / PNG");
+      Swal.fire({
+        icon: "error",
+        title: "Format tidak didukung",
+        text: "Poster harus JPG atau PNG.",
+        confirmButtonColor: "#dc2626",
+      });
       return;
     }
 
@@ -49,121 +66,156 @@ export default function AddEvent() {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("date", date);
-      formData.append("location", location);
+      const fd = new FormData();
+      fd.append("title", form.title);
+      fd.append("description", form.description);
+      fd.append("date", form.date);
+      fd.append("location", form.location);
+      if (poster) fd.append("poster", poster);
 
-      if (poster) {
-        formData.append("poster", poster);
-      }
-
-      await api.post("/events", formData, {
+      await api.post("/events", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert("Event berhasil ditambahkan! 🎉");
-      navigate("/admin/events");
+      Swal.fire({
+        icon: "success",
+        title: "Event berhasil dibuat!",
+        text: "Event Anda sudah tersimpan.",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      setTimeout(() => navigate("/admin/events"), 1200);
     } catch (err) {
-      console.error("Gagal menambah event:", err);
-      alert("Gagal menambahkan event!");
-    } finally {
-      setLoading(false);
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal membuat event",
+        text: err.response?.data?.message || "Terjadi kesalahan.",
+        confirmButtonColor: "#dc2626",
+      });
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar title="Add Event" />
+    <div className="min-h-screen bg-gray-50 flex overflow-hidden">
+      {/* SIDEBAR */}
+      <Sidebar />
 
-      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
-        {/* SIDEBAR */}
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
+      {/* MAIN AREA */}
+      <div className="flex-1 md:ml-64 flex flex-col">
+        <Navbar title="Add Event" />
 
-        {/* MAIN CONTENT */}
-        <main className="rounded-2xl border bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold mb-4">Buat Event Baru</h2>
+        <div className="px-4 sm:px-6 lg:px-8 py-6 w-full max-w-4xl mx-auto">
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 rounded-lg border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 transition"
+          >
+            ← Kembali
+          </button>
 
-            {/* TITLE */}
-            <div>
-              <label className="block font-medium">Judul Event</label>
-              <input
-                type="text"
-                placeholder="Contoh: Seminar UIKA 2025"
-                className="w-full border p-2 rounded-xl"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </div>
+          <main className="bg-white p-6 rounded-2xl border shadow-sm">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              Buat Event Baru
+            </h2>
 
-            {/* DESCRIPTION */}
-            <div>
-              <label className="block font-medium">Deskripsi</label>
-              <textarea
-                className="w-full border p-2 rounded-xl"
-                placeholder="Tuliskan detail event..."
-                rows={4}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-
-            {/* TANGGAL */}
-            <div>
-              <label className="block font-medium">Tanggal</label>
-              <input
-                type="date"
-                className="w-full border p-2 rounded-xl"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* LOKASI */}
-            <div>
-              <label className="block font-medium">Lokasi</label>
-              <input
-                type="text"
-                placeholder="Contoh: Aula Utama UIKA"
-                className="w-full border p-2 rounded-xl"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-
-            {/* POSTER UPLOAD */}
-            <div>
-              <label className="block font-medium mb-2">Poster Event</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePosterChange}
-                className="block w-full border p-2 rounded-xl"
-              />
-
-              {preview && (
-                <img
-                  src={preview}
-                  className="mt-3 w-64 rounded-xl shadow"
+            <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
+              {/* TITLE */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Judul Event
+                </label>
+                <input
+                  type="text"
+                  className="w-full mt-1 border rounded-xl p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                  placeholder="Contoh: Seminar UIKA 2025"
+                  value={form.title}
+                  onChange={(e) => updateForm("title", e.target.value)}
+                  required
                 />
-              )}
-            </div>
+              </div>
 
-            <button
-              disabled={loading}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-500 transition shadow font-semibold"
-            >
-              {loading ? "Membuat Event..." : "Buat Event"}
-            </button>
-          </form>
-        </main>
+              {/* DESCRIPTION */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Deskripsi Event
+                </label>
+                <textarea
+                  className="w-full mt-1 border rounded-xl p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none min-h-[120px]"
+                  placeholder="Tuliskan deskripsi singkat event..."
+                  value={form.description}
+                  onChange={(e) => updateForm("description", e.target.value)}
+                />
+              </div>
+
+              {/* DATE */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Tanggal Event
+                </label>
+                <input
+                  type="date"
+                  className="w-full mt-1 border rounded-xl p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                  value={form.date}
+                  onChange={(e) => updateForm("date", e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* LOCATION */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Lokasi
+                </label>
+                <input
+                  type="text"
+                  className="w-full mt-1 border rounded-xl p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                  placeholder="Contoh: Aula Utama UIKA"
+                  value={form.location}
+                  onChange={(e) => updateForm("location", e.target.value)}
+                />
+              </div>
+
+              {/* POSTER */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Poster Event
+                </label>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="mt-1 text-sm"
+                  onChange={handlePosterChange}
+                />
+
+                {preview && (
+                  <img
+                    src={preview}
+                    className="mt-3 w-64 rounded-xl border shadow-sm"
+                    alt="Poster Preview"
+                  />
+                )}
+              </div>
+
+              {/* SUBMIT BUTTON */}
+              <button
+                disabled={loading}
+                className={`w-full py-3 rounded-xl text-white font-medium shadow transition ${
+                  loading
+                    ? "bg-blue-300 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {loading ? "Menyimpan..." : "Buat Event"}
+              </button>
+            </form>
+          </main>
+        </div>
       </div>
     </div>
   );

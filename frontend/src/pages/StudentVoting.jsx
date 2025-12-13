@@ -1,33 +1,77 @@
 import { useEffect, useState } from "react";
-import { getVotings } from "../services/api";
+import { getVotings, checkUserVote } from "../services/api";
 import StudentNavbar from "../components/StudentNavbar";
 import Container from "../components/Container";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 export default function StudentVoting() {
   const [votings, setVotings] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Load semua voting
-  useEffect(() => {
-    getVotings()
-      .then((res) => setVotings(res.data || []))
-      .catch((err) => console.error("Gagal load votings:", err))
-      .finally(() => setLoading(false));
-  }, []);
+  const userId = Number(localStorage.getItem("user_id"));
 
+  const formatDate = (iso) => {
+    if (!iso) return "-";
+    return new Date(iso).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await getVotings();
+        const list = res.data || [];
+
+        const withStatus = await Promise.all(
+          list.map(async (v) => {
+            try {
+              const check = await checkUserVote(v.id, userId);
+              return {
+                ...v,
+                hasVoted: check.data?.voted ?? false,
+                votedOption: check.data?.option_id ?? null,
+              };
+            } catch {
+              return { ...v, hasVoted: false };
+            }
+          })
+        );
+
+        setVotings(withStatus);
+      } catch (err) {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Memuat",
+          text: "Tidak dapat memuat daftar voting.",
+          confirmButtonColor: "#2563eb",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, [userId]);
+
+  // ======================== LOADING ========================
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-pulse text-center space-y-3">
-          <div className="w-56 h-6 bg-slate-300 rounded mx-auto" />
-          <div className="w-40 h-6 bg-slate-200 rounded mx-auto" />
+        <div className="animate-pulse space-y-3 w-64">
+          <div className="h-6 bg-slate-300 rounded"></div>
+          <div className="h-6 bg-slate-200 rounded"></div>
         </div>
       </div>
     );
   }
 
+  // ======================== UI ========================
   return (
     <div className="min-h-screen bg-slate-50">
       <StudentNavbar />
@@ -42,102 +86,129 @@ export default function StudentVoting() {
             Voting Kampus
           </h1>
           <p className="mt-2 text-slate-600 max-w-xl text-sm md:text-base">
-            Pilih voting yang ingin Anda ikuti, lalu tentukan kandidat pilihan
-            Anda dengan satu kali klik.
+            Pilih voting untuk berpartisipasi atau lihat hasil voting yang sudah kamu ikuti.
           </p>
         </div>
 
-        {/* Kalau tidak ada voting */}
         {votings.length === 0 && (
-          <div className="bg-white/80 backdrop-blur rounded-2xl shadow-sm border border-dashed border-slate-200 p-8 text-center text-slate-500">
-            <p className="font-medium mb-1">Belum ada voting aktif</p>
-            <p className="text-sm">
-              Silakan cek kembali nanti atau hubungi panitia kampus.
-            </p>
+          <div className="bg-white/80 backdrop-blur rounded-2xl shadow-sm border border-dashed border-slate-300 py-10 text-center text-slate-500">
+            <p className="font-medium">Belum ada voting tersedia</p>
           </div>
         )}
 
-        {/* LIST VOTING */}
         <div className="space-y-6">
           {votings.map((v) => {
             const isActive = v.status === "active";
+            const isClosed = v.status === "closed";
+            const hasVoted = v.hasVoted;
+
+            const handleClick = () => {
+              if (hasVoted) {
+                navigate(`/student/voting/${v.id}/results`);
+                return;
+              }
+
+              if (isActive) {
+                navigate(`/student/voting/${v.id}`);
+                return;
+              }
+
+              Swal.fire({
+                icon: "info",
+                title: "Voting Tidak Aktif",
+                text:
+                  v.status === "draft"
+                    ? "Voting ini belum dibuka."
+                    : "Voting telah ditutup.",
+                confirmButtonColor: "#2563eb",
+              });
+            };
 
             return (
-              <button
+              <div
                 key={v.id}
-                type="button"
-                onClick={() => isActive && navigate(`/student/voting/${v.id}`)}
+                onClick={handleClick}
                 className={[
-                  "w-full text-left bg-white rounded-2xl shadow-sm border p-5 md:p-7",
-                  "flex flex-col gap-4 md:flex-row md:items-center justify-between",
-                  "transition-all duration-200",
-                  isActive
-                    ? "hover:shadow-xl hover:-translate-y-[2px] border-transparent cursor-pointer"
-                    : "opacity-60 cursor-not-allowed border-slate-200",
+                  "w-full bg-white rounded-2xl shadow-sm border p-5 md:p-7 flex flex-col md:flex-row justify-between gap-4 transition-all duration-150",
+                  (isActive || hasVoted) &&
+                    "cursor-pointer hover:shadow-xl hover:-translate-y-[2px]",
+                  isClosed && !hasVoted && "opacity-80",
                 ].join(" ")}
               >
-                {/* Left: Poster + Info */}
+                {/* LEFT */}
                 <div className="flex items-start gap-4">
-                  {/* Poster */}
                   {v.poster_url ? (
                     <img
                       src={v.poster_url}
                       alt="poster"
-                      className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover shadow-md ring-1 ring-slate-200"
+                      className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover shadow-sm ring-1 ring-slate-200"
                     />
                   ) : (
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-medium border border-dashed border-slate-200">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 border border-dashed border-slate-300">
                       No Poster
                     </div>
                   )}
 
-                  {/* Info Voting */}
                   <div>
                     <h2 className="text-xl md:text-2xl font-semibold text-slate-900">
                       {v.title}
                     </h2>
+
                     {v.description && (
                       <p className="mt-1 text-xs md:text-sm text-slate-600 line-clamp-2">
                         {v.description}
                       </p>
                     )}
 
-                    {/* Info tanggal (jika ada) */}
-                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] md:text-xs text-slate-500">
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] md:text-xs text-slate-600">
                       {v.start_date && (
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1">
-                          Mulai: {v.start_date}
+                        <span className="px-3 py-1 rounded-full bg-slate-100">
+                          Mulai: {formatDate(v.start_date)}
                         </span>
                       )}
                       {v.end_date && (
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1">
-                          Selesai: {v.end_date}
+                        <span className="px-3 py-1 rounded-full bg-slate-100">
+                          Selesai: {formatDate(v.end_date)}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Right: Status */}
+                {/* RIGHT STATUS */}
                 <div className="flex flex-col items-end gap-2">
                   <span
                     className={[
                       "px-3 py-1 text-[11px] md:text-xs font-semibold rounded-full border",
-                      isActive
+                      hasVoted
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : isActive
                         ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-slate-100 text-slate-500 border-slate-200",
+                        : "bg-slate-100 text-slate-500 border-slate-300",
                     ].join(" ")}
                   >
-                    {v.status?.toUpperCase()}
+                    {hasVoted ? "SUDAH VOTING" : v.status?.toUpperCase()}
                   </span>
 
-                  {isActive && (
-                    <span className="hidden md:inline-flex items-center text-[11px] font-medium text-blue-600">
-                      Klik untuk mengikuti voting →
+                  {hasVoted && (
+                    <span className="text-[11px] md:text-xs font-medium text-blue-600">
+                      Klik untuk melihat hasil →
+                    </span>
+                  )}
+
+                  {!hasVoted && isActive && (
+                    <span className="text-[11px] md:text-xs font-medium text-blue-600">
+                      Klik untuk mengikuti →
+                    </span>
+                  )}
+
+                  {isClosed && !hasVoted && (
+                    <span className="text-[11px] md:text-xs text-slate-500">
+                      Voting telah ditutup
                     </span>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

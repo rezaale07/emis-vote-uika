@@ -11,12 +11,35 @@ use Carbon\Carbon;
 
 class VoteController extends Controller
 {
+    // ============================================================
+    // 🔍 CHECK USER VOTE
+    // ============================================================
+    public function check(Request $request)
+    {
+        $request->validate([
+            'voting_id' => 'required|exists:votings,id',
+            'user_id'   => 'required|exists:users,id',
+        ]);
+
+        $vote = Vote::where('voting_id', $request->voting_id)
+            ->where('user_id', $request->user_id)
+            ->first();
+
+        return response()->json([
+            'voted'     => $vote ? true : false,
+            'option_id' => $vote->vote_option_id ?? null,
+        ]);
+    }
+
+    // ============================================================
+    // 🗳 SUBMIT VOTE
+    // ============================================================
     public function store(Request $request)
     {
         $data = $request->validate([
             'voting_id'      => 'required|exists:votings,id',
             'vote_option_id' => 'required|exists:vote_options,id',
-            'user_id'        => 'required|integer|exists:users,id',
+            'user_id'        => 'required|exists:users,id',
         ]);
 
         $voting = Voting::findOrFail($data['voting_id']);
@@ -30,20 +53,14 @@ class VoteController extends Controller
 
         // Cek tanggal
         $now = Carbon::now();
-
         if ($voting->start_date && $now->lt(Carbon::parse($voting->start_date))) {
-            throw ValidationException::withMessages([
-                'voting' => 'Voting belum dimulai.',
-            ]);
+            throw ValidationException::withMessages(['voting' => 'Voting belum dimulai.']);
         }
-
         if ($voting->end_date && $now->gt(Carbon::parse($voting->end_date))) {
-            throw ValidationException::withMessages([
-                'voting' => 'Voting telah berakhir.',
-            ]);
+            throw ValidationException::withMessages(['voting' => 'Voting telah berakhir.']);
         }
 
-        // Pastikan option milik voting
+        // Cek opsi kandidat valid
         $opt = VoteOption::where('id', $data['vote_option_id'])
             ->where('voting_id', $data['voting_id'])
             ->first();
@@ -54,19 +71,18 @@ class VoteController extends Controller
             ]);
         }
 
-        // ⛔ CEK SUDAH PERNAH VOTE BELUM
+        // Cek apakah sudah vote
         $existing = Vote::where('voting_id', $data['voting_id'])
             ->where('user_id', $data['user_id'])
             ->first();
 
         if ($existing) {
-            // Frontend akan baca status 409 untuk menampilkan pesan "sudah pernah vote"
             return response()->json([
-                'message' => 'Anda sudah memberikan suara pada voting ini.',
+                'message' => 'Anda sudah memberikan suara.',
             ], 409);
         }
 
-        // SIMPAN VOTE BARU
+        // Simpan vote
         $vote = Vote::create($data);
 
         return response()->json([

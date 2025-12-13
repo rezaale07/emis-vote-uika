@@ -34,7 +34,7 @@ export const createEvent = (payload) =>
   });
 
 export const updateEvent = (id, payload) =>
-  api.put(`/events/${id}`, payload, {
+  api.post(`/events/${id}?_method=PUT`, payload, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
@@ -51,7 +51,9 @@ export const registerEvent = (payload) => api.post("/registrations", payload);
 export const checkRegistration = (event_id, user_id) =>
   api.get("/registrations/check", { params: { event_id, user_id } });
 
+// ========================
 // 🗳️ VOTING
+// ========================
 export const getVotings = () => api.get("/votings");
 export const getVotingById = (id) => api.get(`/votings/${id}`);
 
@@ -60,7 +62,6 @@ export const createVoting = (payload) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-// pakai POST + _method=PUT agar FormData aman di Laravel
 export const updateVoting = (id, payload) =>
   api.post(`/votings/${id}?_method=PUT`, payload, {
     headers: { "Content-Type": "multipart/form-data" },
@@ -69,7 +70,24 @@ export const updateVoting = (id, payload) =>
 export const deleteVoting = (id) => api.delete(`/votings/${id}`);
 
 
-// Voting Options
+// ================================
+// ✅ CEK USER SUDAH VOTE (AMAN)
+// ================================
+export const checkUserVote = async (voting_id, user_id) => {
+  try {
+    const res = await api.get("/votes/check", {
+      params: { voting_id, user_id },
+    });
+    return res; // format: { voted: true/false, option_id: X }
+  } catch (err) {
+    console.warn("⚠️ Endpoint /votes/check belum tersedia di backend.");
+    return { data: { voted: false } };
+  }
+};
+
+// ========================
+// VOTE OPTIONS
+// ========================
 export const getVoteOptions = (votingId) =>
   api.get(`/votings/${votingId}/options`);
 
@@ -82,11 +100,15 @@ export const updateVoteOption = (votingId, optionId, payload) =>
 export const deleteVoteOption = (votingId, optionId) =>
   api.delete(`/votings/${votingId}/options/${optionId}`);
 
-
-// Voting Submit
+// ========================
+// SUBMIT VOTE
+// ========================
 export const submitVote = (payload) =>
-  api.post("/votes", payload).catch((err) => { throw err });
+  api.post("/votes", payload).catch((err) => {
+    throw err;
+  });
 
+  
 
 // ========================
 // 🎓 STUDENTS CRUD
