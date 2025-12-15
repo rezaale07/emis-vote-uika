@@ -5,24 +5,16 @@ import api from "../services/api";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 
-// ============================================================
-// PREMIUM SKELETON ROW
-// ============================================================
+/* =========================
+   SKELETON ROW
+========================= */
 function SkeletonRow() {
   return (
     <tr className="animate-pulse border-b">
-      <td className="py-4 px-2">
-        <div className="h-4 w-40 bg-gray-200 rounded"></div>
-      </td>
-      <td className="py-4 px-2">
-        <div className="h-4 w-24 bg-gray-200 rounded"></div>
-      </td>
-      <td className="py-4 px-2">
-        <div className="h-4 w-32 bg-gray-200 rounded"></div>
-      </td>
-      <td className="py-4 px-2">
-        <div className="h-8 w-24 bg-gray-200 rounded-xl"></div>
-      </td>
+      <td className="py-4 px-3"><div className="h-4 w-40 bg-gray-200 rounded" /></td>
+      <td className="py-4 px-3"><div className="h-4 w-28 bg-gray-200 rounded" /></td>
+      <td className="py-4 px-3"><div className="h-4 w-40 bg-gray-200 rounded" /></td>
+      <td className="py-4 px-3"><div className="h-8 w-24 bg-gray-200 rounded-xl" /></td>
     </tr>
   );
 }
@@ -33,7 +25,6 @@ export default function ManageStudents() {
 
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   const [form, setForm] = useState({
@@ -50,9 +41,9 @@ export default function ManageStudents() {
     setLoading(true);
     try {
       const res = await api.get("/students");
-      setStudents(res.data);
-    } catch (err) {
-      Swal.fire("Error", "Gagal memuat daftar mahasiswa.", "error");
+      setStudents(res.data || []);
+    } catch {
+      Swal.fire("Error", "Gagal memuat data mahasiswa", "error");
     }
     setLoading(false);
   };
@@ -61,37 +52,36 @@ export default function ManageStudents() {
     loadData();
   }, []);
 
-  // ============================================================
-  // TAMBAH MAHASISWA
-  // ============================================================
+  /* =========================
+     ADD
+  ========================= */
   const addStudent = async () => {
     if (!form.name || !form.username || !form.password) {
-      Swal.fire("Perhatian", "Nama, NPM, dan Password wajib diisi.", "warning");
+      Swal.fire("Validasi", "Nama, NPM, dan password wajib diisi", "warning");
       return;
     }
 
     try {
       await api.post("/students", form);
-
       setShowAdd(false);
       setForm({ name: "", username: "", email: "", password: "" });
       loadData();
 
       Swal.fire({
         icon: "success",
-        title: "Berhasil!",
-        text: "Mahasiswa berhasil ditambahkan.",
-        timer: 1500,
+        title: "Berhasil",
+        text: "Mahasiswa ditambahkan",
+        timer: 1400,
         showConfirmButton: false,
       });
     } catch {
-      Swal.fire("Error", "Gagal menambahkan mahasiswa.", "error");
+      Swal.fire("Error", "Gagal menambahkan mahasiswa", "error");
     }
   };
 
-  // ============================================================
-  // EDIT MAHASISWA
-  // ============================================================
+  /* =========================
+     EDIT
+  ========================= */
   const saveEdit = async () => {
     try {
       await api.put(`/students/${selectedStudent.id}`, {
@@ -106,39 +96,38 @@ export default function ManageStudents() {
 
       Swal.fire({
         icon: "success",
-        title: "Berhasil!",
-        text: "Data mahasiswa diperbarui.",
-        timer: 1500,
+        title: "Berhasil",
+        text: "Data mahasiswa diperbarui",
+        timer: 1400,
         showConfirmButton: false,
       });
     } catch {
-      Swal.fire("Error", "Gagal memperbarui mahasiswa.", "error");
+      Swal.fire("Error", "Gagal memperbarui mahasiswa", "error");
     }
   };
 
-  // ============================================================
-  // HAPUS MAHASISWA (SweetAlert2 Confirm)
-  // ============================================================
-  const deleteStudent = async (student) => {
+  /* =========================
+     DELETE
+  ========================= */
+  const deleteStudent = async (s) => {
     const confirm = await Swal.fire({
       title: "Hapus Mahasiswa?",
-      html: `Yakin ingin menghapus <b>${student.name}</b>?<br/>Tindakan ini tidak dapat dibatalkan.`,
+      html: `Yakin ingin menghapus <b>${s.name}</b>?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Hapus",
       cancelButtonText: "Batal",
-      confirmButtonColor: "#e11d48",
+      confirmButtonColor: "#dc2626",
     });
 
     if (!confirm.isConfirmed) return;
 
     try {
-      await api.delete(`/students/${student.id}`);
+      await api.delete(`/students/${s.id}`);
       loadData();
-
-      Swal.fire("Terhapus!", "Mahasiswa berhasil dihapus.", "success");
+      Swal.fire("Terhapus", "Mahasiswa berhasil dihapus", "success");
     } catch {
-      Swal.fire("Error", "Gagal menghapus mahasiswa.", "error");
+      Swal.fire("Error", "Gagal menghapus mahasiswa", "error");
     }
   };
 
@@ -146,39 +135,43 @@ export default function ManageStudents() {
     <div className="min-h-screen bg-gray-50 fade-in">
       <Navbar title="Manage Students" />
 
-      <div className="max-w-7xl mx-auto grid md:grid-cols-[16rem_1fr] gap-6 px-4 py-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
         <div className="hidden md:block">
           <Sidebar />
         </div>
 
-        {/* MAIN */}
         <main className="bg-white rounded-2xl border shadow-sm p-6">
           {/* HEADER */}
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Daftar Mahasiswa
-            </h2>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
+                Students
+              </p>
+              <h2 className="mt-1 text-2xl font-bold text-gray-900">
+                Daftar Mahasiswa
+              </h2>
+            </div>
 
             <button
               onClick={() => {
                 setForm({ name: "", username: "", email: "", password: "" });
                 setShowAdd(true);
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition"
+              className="rounded-xl bg-blue-600 text-white px-4 py-2 text-sm shadow hover:bg-blue-700"
             >
               + Tambah Mahasiswa
             </button>
           </div>
 
           {/* TABLE */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="text-gray-500 border-b bg-gray-50">
-                  <th className="py-3 text-left px-2">Nama</th>
-                  <th className="py-3 text-left px-2">NPM</th>
-                  <th className="py-3 text-left px-2">Email</th>
-                  <th className="py-3 text-left px-2">Aksi</th>
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="py-3 px-3 text-left">Nama</th>
+                  <th className="py-3 px-3 text-left">NPM</th>
+                  <th className="py-3 px-3 text-left">Email</th>
+                  <th className="py-3 px-3 text-left">Aksi</th>
                 </tr>
               </thead>
 
@@ -187,24 +180,20 @@ export default function ManageStudents() {
                   <>
                     <SkeletonRow />
                     <SkeletonRow />
-                    <SkeletonRow />
                   </>
                 ) : students.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-6 text-gray-500 italic">
-                      Belum ada mahasiswa.
+                    <td colSpan="4" className="py-6 text-center text-gray-500 italic">
+                      Belum ada mahasiswa
                     </td>
                   </tr>
                 ) : (
                   students.map((s) => (
-                    <tr
-                      key={s.id}
-                      className="border-b hover:bg-gray-50 transition"
-                    >
-                      <td className="py-3 px-2">{s.name}</td>
-                      <td className="px-2">{s.username}</td>
-                      <td className="px-2">{s.email || "-"}</td>
-                      <td className="py-3 px-2 flex gap-2">
+                    <tr key={s.id} className="border-t hover:bg-gray-50">
+                      <td className="py-3 px-3">{s.name}</td>
+                      <td className="px-3">{s.username}</td>
+                      <td className="px-3">{s.email || "-"}</td>
+                      <td className="px-3 flex gap-2">
                         <button
                           onClick={() => {
                             setSelectedStudent(s);
@@ -216,14 +205,13 @@ export default function ManageStudents() {
                             });
                             setShowEdit(true);
                           }}
-                          className="px-3 py-1.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition shadow-sm"
+                          className="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-100"
                         >
                           Edit
                         </button>
-
                         <button
                           onClick={() => deleteStudent(s)}
-                          className="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition shadow-sm"
+                          className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50"
                         >
                           Hapus
                         </button>
@@ -237,37 +225,23 @@ export default function ManageStudents() {
         </main>
       </div>
 
-      {/* ADD MODAL */}
       {showAdd && (
         <Modal title="Tambah Mahasiswa" onClose={() => setShowAdd(false)}>
           <FormInput label="Nama" value={form.name} onChange={(v) => updateForm("name", v)} />
           <FormInput label="NPM" value={form.username} onChange={(v) => updateForm("username", v)} />
-          <FormInput label="Email (opsional)" value={form.email} onChange={(v) => updateForm("email", v)} />
+          <FormInput label="Email" value={form.email} onChange={(v) => updateForm("email", v)} />
           <FormInput label="Password" type="password" value={form.password} onChange={(v) => updateForm("password", v)} />
-
-          <button
-            onClick={addStudent}
-            className="w-full mt-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
-          >
-            Tambah
-          </button>
+          <PrimaryButton onClick={addStudent} text="Tambah Mahasiswa" />
         </Modal>
       )}
 
-      {/* EDIT MODAL */}
       {showEdit && (
         <Modal title="Edit Mahasiswa" onClose={() => setShowEdit(false)}>
           <FormInput label="Nama" value={form.name} onChange={(v) => updateForm("name", v)} />
           <FormInput label="NPM" value={form.username} onChange={(v) => updateForm("username", v)} />
-          <FormInput label="Email (opsional)" value={form.email} onChange={(v) => updateForm("email", v)} />
+          <FormInput label="Email" value={form.email} onChange={(v) => updateForm("email", v)} />
           <FormInput label="Password (opsional)" type="password" value={form.password} onChange={(v) => updateForm("password", v)} />
-
-          <button
-            onClick={saveEdit}
-            className="w-full mt-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
-          >
-            Simpan Perubahan
-          </button>
+          <PrimaryButton onClick={saveEdit} text="Simpan Perubahan" />
         </Modal>
       )}
 
@@ -282,49 +256,48 @@ export default function ManageStudents() {
   );
 }
 
-// ============================================================
-// MODAL COMPONENT
-// ============================================================
+/* =========================
+   MODAL
+========================= */
 function Modal({ title, children, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-
       <div className="relative bg-white w-96 p-6 rounded-2xl shadow-xl animate-scaleIn">
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-        <div className="mt-4">{children}</div>
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <div className="mt-4 space-y-3">{children}</div>
       </div>
-
-      <style>{`
-        .animate-fadeIn { animation: fadeIn .2s ease-out; }
-        .animate-scaleIn { animation: scaleIn .25s ease-out; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleIn {
-          from { transform: scale(.85); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
 
-// ============================================================
-// INPUT COMPONENT
-// ============================================================
+/* =========================
+   INPUT & BUTTON
+========================= */
 function FormInput({ label, value, onChange, type = "text" }) {
   return (
-    <div className="mt-3">
-      <label className="text-sm font-semibold text-gray-700">{label}</label>
+    <div>
+      <label className="text-sm font-medium text-gray-700">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full mt-1 px-3 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-600 outline-none transition"
+        className="w-full mt-1 border rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
       />
     </div>
+  );
+}
+
+function PrimaryButton({ onClick, text }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full mt-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition"
+    >
+      {text}
+    </button>
   );
 }

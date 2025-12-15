@@ -1,4 +1,3 @@
-// pages/StudentDashboard.jsx
 import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import StudentNavbar from "../components/StudentNavbar";
@@ -40,18 +39,15 @@ function VotingCard({ voting, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={[
-        "group w-full text-left rounded-2xl bg-white border border-slate-200",
-        "shadow-sm hover:shadow-lg hover:-translate-y-[3px]",
-        "transition-all duration-200 overflow-hidden flex flex-col",
-      ].join(" ")}
+      className="group w-full text-left rounded-2xl bg-white border border-slate-200
+                 shadow-sm hover:shadow-xl hover:-translate-y-1
+                 transition-all duration-200 overflow-hidden flex flex-col"
     >
-      {/* Poster */}
       {voting.poster_url ? (
         <img
           src={voting.poster_url}
           alt={voting.title}
-          className="h-40 w-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+          className="h-40 w-full object-cover group-hover:scale-[1.03] transition-transform"
         />
       ) : (
         <div className="h-40 w-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-4xl">
@@ -59,7 +55,6 @@ function VotingCard({ voting, onClick }) {
         </div>
       )}
 
-      {/* Body */}
       <div className="p-4 flex-1 flex flex-col gap-2">
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-semibold text-slate-900 text-sm md:text-base line-clamp-2">
@@ -68,8 +63,7 @@ function VotingCard({ voting, onClick }) {
 
           <span
             className={[
-              "px-2.5 py-0.5 rounded-full text-[11px] font-semibold border",
-              "shrink-0",
+              "px-3 py-1 rounded-full text-[11px] font-semibold border shrink-0",
               hasVoted
                 ? "bg-blue-50 text-blue-700 border-blue-200"
                 : isActive
@@ -87,30 +81,29 @@ function VotingCard({ voting, onClick }) {
           </p>
         )}
 
-        {/* Footer */}
-        <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-          {voting.start_date && (
-            <span>Mulai: {formatDate(voting.start_date)}</span>
-          )}
-
+        <div className="mt-2 flex justify-between text-[11px] text-slate-500">
+          {voting.start_date && <span>Mulai: {formatDate(voting.start_date)}</span>}
           {typeof voting.total_votes === "number" && (
             <span>Total suara: {voting.total_votes}</span>
           )}
         </div>
 
-        <div className="mt-3 flex items-center justify-between text-[11px] font-medium">
+        <div className="mt-3 text-[11px] font-medium">
           <span
-            className={[
-              "inline-flex items-center gap-1",
+            className={
               hasVoted
                 ? "text-blue-600"
                 : isActive
                 ? "text-emerald-600"
-                : "text-slate-500",
-            ].join(" ")}
+                : "text-slate-500"
+            }
           >
-            {hasVoted ? "Lihat hasil voting" : isActive ? "Ikuti sekarang" : "Voting sudah ditutup"}
-            <span aria-hidden>→</span>
+            {hasVoted
+              ? "Lihat hasil voting"
+              : isActive
+              ? "Ikuti sekarang"
+              : "Voting sudah ditutup"}{" "}
+            →
           </span>
         </div>
       </div>
@@ -125,17 +118,15 @@ function EventCard({ event, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={[
-        "group w-full text-left rounded-2xl bg-white border border-slate-200",
-        "shadow-sm hover:shadow-lg hover:-translate-y-[3px]",
-        "transition-all duration-200 overflow-hidden flex flex-col",
-      ].join(" ")}
+      className="group w-full text-left rounded-2xl bg-white border border-slate-200
+                 shadow-sm hover:shadow-xl hover:-translate-y-1
+                 transition-all duration-200 overflow-hidden flex flex-col"
     >
       {event.poster_url ? (
         <img
           src={event.poster_url}
           alt={event.title}
-          className="h-40 w-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+          className="h-40 w-full object-cover group-hover:scale-[1.03] transition-transform"
         />
       ) : (
         <div className="h-40 w-full bg-gradient-to-br from-sky-100 to-slate-100 flex items-center justify-center text-4xl">
@@ -149,20 +140,12 @@ function EventCard({ event, onClick }) {
         </h3>
 
         {event.location && (
-          <p className="text-xs text-slate-500 line-clamp-1">
-            Lokasi: {event.location}
-          </p>
+          <p className="text-xs text-slate-500">Lokasi: {event.location}</p>
         )}
+        {d && <p className="text-xs text-slate-500">Tanggal: {d}</p>}
 
-        {d && (
-          <p className="text-xs text-slate-500">Tanggal: {d}</p>
-        )}
-
-        <div className="mt-3 flex items-center justify-between text-[11px] font-medium text-blue-600">
-          <span className="inline-flex items-center gap-1">
-            Lihat detail event
-            <span aria-hidden>→</span>
-          </span>
+        <div className="mt-3 text-[11px] font-medium text-blue-600">
+          Lihat detail event →
         </div>
       </div>
     </button>
@@ -186,7 +169,6 @@ export default function StudentDashboard() {
     async function load() {
       try {
         setLoading(true);
-
         const [eventRes, votingRes] = await Promise.all([
           api.get("/events"),
           getVotings(),
@@ -194,140 +176,107 @@ export default function StudentDashboard() {
 
         if (!active) return;
 
-        const eventsData = Array.isArray(eventRes.data) ? eventRes.data : [];
-        const votingList = Array.isArray(votingRes.data) ? votingRes.data : [];
-
-        // Tambah info "sudah vote" untuk tiap voting
+        const votingList = votingRes.data || [];
         const withStatus = await Promise.all(
           votingList.map(async (v) => {
             try {
-              const check = await checkUserVote(v.id, Number(localStorage.getItem("user_id")));
-              return {
-                ...v,
-                hasVoted: check.data?.voted ?? false,
-              };
+              const check = await checkUserVote(
+                v.id,
+                Number(localStorage.getItem("user_id"))
+              );
+              return { ...v, hasVoted: check.data?.voted ?? false };
             } catch {
               return { ...v, hasVoted: false };
             }
           })
         );
 
-        setEvents(
-          [...eventsData].sort(
-            (a, b) => new Date(a.date || 0) - new Date(b.date || 0)
-          )
-        );
-        setVotings(
-          [...withStatus].sort(
-            (a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0)
-          )
-        );
+        setEvents(eventRes.data || []);
+        setVotings(withStatus);
       } finally {
         if (active) setLoading(false);
       }
     }
 
     load();
-    return () => {
-      active = false;
-    };
+    return () => (active = false);
   }, []);
 
   const activeVotings = votings.filter((v) => v.status === "active");
-  const upcomingEvents = events; // kalau mau bisa difilter event yang akan datang saja
-
-  const totalJoinedVotings = votings.filter((v) => v.hasVoted).length;
+  const joinedCount = votings.filter((v) => v.hasVoted).length;
 
   return (
     <div className="min-h-screen bg-slate-50">
       <StudentNavbar />
 
-      <main className="pb-10">
-        <Container className="pt-6 md:pt-8 space-y-8 md:space-y-10">
-          {/* HERO / WELCOME */}
-          <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-md">
-            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-            <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-blue-300/20 blur-3xl" />
+      <main className="pb-12">
+        <Container className="pt-8 space-y-10">
+          {/* HERO */}
+          <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-lg">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.15),transparent_45%)]" />
 
-            <div className="relative px-5 py-5 md:px-8 md:py-7 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <div className="relative px-8 py-10 grid md:grid-cols-2 gap-8 items-center">
+              {/* LEFT */}
               <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-blue-100/90">
+                <p className="text-[11px] uppercase tracking-[0.35em] text-blue-100">
                   EMIS-Vote UIKA
                 </p>
-                <h1 className="mt-1 text-2xl md:text-3xl font-semibold">
+                <h1 className="mt-2 text-3xl font-semibold">
                   Halo, {firstName} 👋
                 </h1>
-                <p className="mt-1 text-sm md:text-base text-blue-50/90 max-w-xl">
+                <p className="mt-3 text-blue-50/90 max-w-xl">
                   Berikut ringkasan voting dan event kampus yang bisa kamu ikuti.
                   Tetap aktif berpartisipasi dalam kegiatan kampus ya!
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs md:text-sm">
-                <div className="rounded-2xl bg-white/10 backdrop-blur-md px-3 py-2 border border-white/20">
-                  <p className="text-[11px] uppercase tracking-wide text-blue-100">
-                    Voting Aktif
-                  </p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {activeVotings.length}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/10 backdrop-blur-md px-3 py-2 border border-white/20">
-                  <p className="text-[11px] uppercase tracking-wide text-blue-100">
-                    Voting Diikuti
-                  </p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {totalJoinedVotings}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/10 backdrop-blur-md px-3 py-2 border border-white/20 hidden sm:block">
-                  <p className="text-[11px] uppercase tracking-wide text-blue-100">
-                    Event Kampus
-                  </p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {upcomingEvents.length}
-                  </p>
+              {/* RIGHT – STATS */}
+              <div className="flex justify-end">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {[
+                    ["Voting Aktif", activeVotings.length],
+                    ["Voting Diikuti", joinedCount],
+                    ["Event Kampus", events.length],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="rounded-2xl bg-white/15 backdrop-blur-md
+                                 px-6 py-4 border border-white/20 text-center"
+                    >
+                      <p className="text-[10px] uppercase tracking-widest text-blue-100">
+                        {label}
+                      </p>
+                      <div className="h-10 flex items-center justify-center">
+                        <span className="text-3xl font-extrabold tracking-tight drop-shadow">
+                          {value}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           </section>
 
-          {/* VOTING SECTION */}
+          {/* VOTING */}
           <section className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <h2 className="text-lg md:text-xl font-semibold text-slate-900 flex items-center gap-2">
-                  Voting Aktif
-                  <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                    {activeVotings.length} sesi
-                  </span>
-                </h2>
-                <p className="text-xs md:text-sm text-slate-500 mt-1">
-                  Pilih voting yang ingin kamu ikuti atau lihat hasil voting
-                  yang sudah kamu ikuti.
-                </p>
-              </div>
-
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Voting Aktif</h2>
               <button
                 onClick={() => navigate("/student/voting")}
-                className="hidden sm:inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition"
+                className="text-xs font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-200"
               >
                 Lihat Semua →
               </button>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 <CardSkeleton />
                 <CardSkeleton />
-              </div>
-            ) : activeVotings.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 py-8 px-4 text-center text-sm text-slate-500">
-                Belum ada voting aktif saat ini. Cek kembali beberapa waktu
-                lagi.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {activeVotings.slice(0, 3).map((v) => (
                   <VotingCard
                     key={v.id}
@@ -341,58 +290,23 @@ export default function StudentDashboard() {
                 ))}
               </div>
             )}
-
-            {/* Mobile "Lihat semua" */}
-            {!loading && activeVotings.length > 0 && (
-              <div className="sm:hidden flex justify-end">
-                <button
-                  onClick={() => navigate("/student/voting")}
-                  className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition"
-                >
-                  Lihat Semua →
-                </button>
-              </div>
-            )}
           </section>
 
-          {/* EVENTS SECTION */}
+          {/* EVENTS */}
           <section className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <h2 className="text-lg md:text-xl font-semibold text-slate-900">
-                  Event Kampus
-                </h2>
-                <p className="text-xs md:text-sm text-slate-500 mt-1">
-                  Ikuti berbagai kegiatan kampus yang sedang berlangsung atau
-                  akan datang.
-                </p>
-              </div>
+            <h2 className="text-xl font-semibold">Event Kampus</h2>
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {events.slice(0, 3).map((e) => (
+                <EventCard
+                  key={e.id}
+                  event={e}
+                  onClick={() => navigate(`/event/${e.id}`)}
+                />
+              ))}
             </div>
-
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                <CardSkeleton />
-                <CardSkeleton />
-              </div>
-            ) : upcomingEvents.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 py-8 px-4 text-center text-sm text-slate-500">
-                Belum ada event kampus terdaftar.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {upcomingEvents.slice(0, 3).map((e) => (
-                  <EventCard
-                    key={e.id}
-                    event={e}
-                    onClick={() => navigate(`/event/${e.id}`)}
-                  />
-                ))}
-              </div>
-            )}
           </section>
 
-          {/* FOOTER */}
-          <p className="pt-4 text-center text-[11px] text-slate-400">
+          <p className="text-center text-[11px] text-slate-400">
             © UIKA IT Division — EMIS-Vote UIKA
           </p>
         </Container>

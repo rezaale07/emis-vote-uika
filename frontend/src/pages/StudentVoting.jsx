@@ -35,7 +35,6 @@ export default function StudentVoting() {
               return {
                 ...v,
                 hasVoted: check.data?.voted ?? false,
-                votedOption: check.data?.option_id ?? null,
               };
             } catch {
               return { ...v, hasVoted: false };
@@ -44,7 +43,7 @@ export default function StudentVoting() {
         );
 
         setVotings(withStatus);
-      } catch (err) {
+      } catch {
         Swal.fire({
           icon: "error",
           title: "Gagal Memuat",
@@ -64,8 +63,8 @@ export default function StudentVoting() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="animate-pulse space-y-3 w-64">
-          <div className="h-6 bg-slate-300 rounded"></div>
-          <div className="h-6 bg-slate-200 rounded"></div>
+          <div className="h-6 bg-slate-300 rounded" />
+          <div className="h-6 bg-slate-200 rounded" />
         </div>
       </div>
     );
@@ -73,7 +72,7 @@ export default function StudentVoting() {
 
   // ======================== UI ========================
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 fade-in">
       <StudentNavbar />
 
       <Container className="py-8 md:py-10">
@@ -86,12 +85,12 @@ export default function StudentVoting() {
             Voting Kampus
           </h1>
           <p className="mt-2 text-slate-600 max-w-xl text-sm md:text-base">
-            Pilih voting untuk berpartisipasi atau lihat hasil voting yang sudah kamu ikuti.
+            Ikuti voting yang tersedia atau lihat hasil voting yang sudah kamu ikuti.
           </p>
         </div>
 
         {votings.length === 0 && (
-          <div className="bg-white/80 backdrop-blur rounded-2xl shadow-sm border border-dashed border-slate-300 py-10 text-center text-slate-500">
+          <div className="bg-white rounded-2xl border border-dashed border-slate-300 py-12 text-center text-slate-500 shadow-sm">
             <p className="font-medium">Belum ada voting tersedia</p>
           </div>
         )}
@@ -129,9 +128,9 @@ export default function StudentVoting() {
                 key={v.id}
                 onClick={handleClick}
                 className={[
-                  "w-full bg-white rounded-2xl shadow-sm border p-5 md:p-7 flex flex-col md:flex-row justify-between gap-4 transition-all duration-150",
+                  "bg-white rounded-2xl border shadow-sm p-5 md:p-7 flex flex-col md:flex-row justify-between gap-5 transition",
                   (isActive || hasVoted) &&
-                    "cursor-pointer hover:shadow-xl hover:-translate-y-[2px]",
+                    "cursor-pointer hover:shadow-md hover:-translate-y-[2px]",
                   isClosed && !hasVoted && "opacity-80",
                 ].join(" ")}
               >
@@ -141,10 +140,10 @@ export default function StudentVoting() {
                     <img
                       src={v.poster_url}
                       alt="poster"
-                      className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover shadow-sm ring-1 ring-slate-200"
+                      className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover border shadow-sm"
                     />
                   ) : (
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 border border-dashed border-slate-300">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 border border-dashed">
                       No Poster
                     </div>
                   )}
@@ -175,7 +174,7 @@ export default function StudentVoting() {
                   </div>
                 </div>
 
-                {/* RIGHT STATUS */}
+                {/* RIGHT */}
                 <div className="flex flex-col items-end gap-2">
                   <span
                     className={[
@@ -187,18 +186,18 @@ export default function StudentVoting() {
                         : "bg-slate-100 text-slate-500 border-slate-300",
                     ].join(" ")}
                   >
-                    {hasVoted ? "SUDAH VOTING" : v.status?.toUpperCase()}
+                    {hasVoted ? "SUDAH VOTING" : v.status.toUpperCase()}
                   </span>
 
                   {hasVoted && (
                     <span className="text-[11px] md:text-xs font-medium text-blue-600">
-                      Klik untuk melihat hasil →
+                      Lihat hasil voting →
                     </span>
                   )}
 
                   {!hasVoted && isActive && (
                     <span className="text-[11px] md:text-xs font-medium text-blue-600">
-                      Klik untuk mengikuti →
+                      Ikuti voting →
                     </span>
                   )}
 
@@ -214,8 +213,8 @@ export default function StudentVoting() {
         </div>
       </Container>
 
-      <footer className="text-center text-[11px] text-slate-400 border-t py-4 mt-6">
-        © UIKA IT Division — All Rights Reserved
+      <footer className="text-center text-[11px] text-slate-400 border-t py-4 mt-8">
+        © UIKA IT Division
       </footer>
     </div>
   );

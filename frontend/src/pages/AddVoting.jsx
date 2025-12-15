@@ -5,6 +5,45 @@ import Sidebar from "../components/Sidebar";
 import { createVoting } from "../services/api";
 import Swal from "sweetalert2";
 
+/* =========================
+   SUBMIT BUTTON
+========================= */
+function SubmitButton({ loading, text }) {
+  return (
+    <button
+      disabled={loading}
+      className={`w-full py-3 rounded-xl text-white text-sm font-medium shadow transition ${
+        loading
+          ? "bg-blue-300 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700"
+      }`}
+    >
+      {loading ? (
+        <span className="flex items-center justify-center gap-2">
+          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          Menyimpan...
+        </span>
+      ) : (
+        text
+      )}
+    </button>
+  );
+}
+
+/* =========================
+   INPUT WRAPPER
+========================= */
+function Input({ label, children }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
 export default function AddVoting() {
   const navigate = useNavigate();
 
@@ -18,43 +57,32 @@ export default function AddVoting() {
 
   const [poster, setPoster] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Cleanup URL preview
   useEffect(() => {
     return () => {
       if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
-  const updateForm = (key, value) => {
+  const updateForm = (key, value) =>
     setForm((prev) => ({ ...prev, [key]: value }));
-  };
 
+  /* =========================
+     POSTER CHANGE
+  ========================= */
   const handlePosterChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // VALIDASI SIZE
     if (file.size > 4 * 1024 * 1024) {
-      Swal.fire({
-        icon: "warning",
-        title: "Poster terlalu besar!",
-        text: "Ukuran maksimal 4MB.",
-        confirmButtonColor: "#2563eb",
-      });
+      Swal.fire("Peringatan", "Poster maksimal 4MB", "warning");
       return;
     }
 
-    // VALIDASI FORMAT
     const allowed = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowed.includes(file.type)) {
-      Swal.fire({
-        icon: "error",
-        title: "Format tidak didukung",
-        text: "Poster harus JPG atau PNG.",
-        confirmButtonColor: "#dc2626",
-      });
+      Swal.fire("Error", "Poster harus JPG atau PNG", "error");
       return;
     }
 
@@ -62,32 +90,34 @@ export default function AddVoting() {
     setPreview(URL.createObjectURL(file));
   };
 
+  /* =========================
+     SUBMIT
+  ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.title.trim()) {
-      Swal.fire({
-        icon: "warning",
-        title: "Judul wajib diisi",
-        confirmButtonColor: "#2563eb",
-      });
+      Swal.fire("Validasi", "Judul voting wajib diisi", "warning");
       return;
     }
 
-    if (form.start_date && form.end_date && form.start_date > form.end_date) {
-      Swal.fire({
-        icon: "error",
-        title: "Tanggal tidak valid",
-        text: "Tanggal selesai tidak boleh sebelum tanggal mulai",
-        confirmButtonColor: "#dc2626",
-      });
+    if (
+      form.start_date &&
+      form.end_date &&
+      form.start_date > form.end_date
+    ) {
+      Swal.fire(
+        "Tanggal Tidak Valid",
+        "Tanggal selesai tidak boleh sebelum tanggal mulai",
+        "error"
+      );
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
 
     const fd = new FormData();
-    Object.keys(form).forEach((key) => fd.append(key, form[key]));
+    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
     if (poster) fd.append("poster", poster);
 
     try {
@@ -95,167 +125,173 @@ export default function AddVoting() {
 
       Swal.fire({
         icon: "success",
-        title: "Voting berhasil dibuat!",
-        text: "Anda akan diarahkan ke halaman voting.",
+        title: "Berhasil!",
+        text: "Voting berhasil dibuat",
+        timer: 1400,
         showConfirmButton: false,
-        timer: 1500,
       });
 
       setTimeout(() => navigate("/admin/voting"), 1200);
     } catch (err) {
-      console.error(err);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal membuat voting",
-        text: err.response?.data?.message || "Terjadi kesalahan.",
-        confirmButtonColor: "#dc2626",
-      });
+      Swal.fire(
+        "Gagal",
+        err.response?.data?.message || "Terjadi kesalahan",
+        "error"
+      );
+    } finally {
+      setSaving(false);
     }
-
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar title="Create Voting" />
+    <div className="min-h-screen bg-gray-50 fade-in">
+      <Navbar title="Add Voting" />
 
-      <div className="max-w-7xl mx-auto px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
-        {/* SIDEBAR */}
+      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
         <div className="hidden md:block">
           <Sidebar />
         </div>
 
-        {/* MAIN */}
-        <main className="bg-white p-6 rounded-2xl border shadow-sm">
-          {/* BACK BUTTON */}
+        <main className="rounded-2xl border bg-white p-6 shadow-sm max-w-3xl">
           <button
             onClick={() => navigate(-1)}
-            className="mb-4 rounded-lg border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 transition"
+            className="mb-6 rounded-xl border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
           >
             ← Kembali
           </button>
 
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Buat Voting Baru
-          </h2>
+          <div className="mb-6">
+            <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
+              Voting
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-gray-900">
+              Buat Voting Baru
+            </h2>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
-
-            {/* TITLE */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Judul Voting
-              </label>
+          <form onSubmit={handleSubmit} className="space-y-6 fade-up">
+            <Input label="Judul Voting">
               <input
+                className="input"
+                placeholder="Contoh: Pemilihan Ketua BEM"
                 value={form.title}
                 onChange={(e) => updateForm("title", e.target.value)}
-                className="mt-1 w-full rounded-xl border p-3 shadow-sm focus:ring-2 focus:ring-blue-600"
-                placeholder="Contoh: Pemilihan Ketua BEM"
                 required
               />
-            </div>
+            </Input>
 
-            {/* DESCRIPTION */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Deskripsi
-              </label>
+            <Input label="Deskripsi">
               <textarea
+                className="textarea"
+                placeholder="Deskripsi singkat voting"
                 value={form.description}
-                onChange={(e) => updateForm("description", e.target.value)}
-                className="mt-1 w-full rounded-xl border p-3 min-h-[100px] shadow-sm focus:ring-2 focus:ring-blue-600"
-                placeholder="Deskripsi singkat..."
+                onChange={(e) =>
+                  updateForm("description", e.target.value)
+                }
               />
-            </div>
+            </Input>
 
-            {/* POSTER */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Poster Voting
-              </label>
-
-              <div className="mt-2 flex items-start gap-4">
-                {/* PREVIEW */}
-                <div className="w-40 h-40 rounded-xl bg-gray-50 border flex items-center justify-center overflow-hidden">
+            <Input label="Poster Voting">
+              <div className="flex items-start gap-4">
+                <div className="w-40 h-40 rounded-xl border bg-gray-50 flex items-center justify-center overflow-hidden shadow-sm">
                   {preview ? (
-                    <img src={preview} className="w-full h-full object-cover" />
+                    <img
+                      src={preview}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <span className="text-gray-400 text-sm">No Preview</span>
+                    <span className="text-gray-400 text-sm">
+                      No Poster
+                    </span>
                   )}
                 </div>
 
-                <div className="flex flex-col">
-                  <label className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl cursor-pointer text-sm font-medium hover:bg-blue-100 border">
-                    Pilih Gambar
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePosterChange}
-                      className="hidden"
-                    />
-                  </label>
-                  <p className="text-xs text-gray-500 mt-2">
-                    JPG/PNG, max 4MB
-                  </p>
-                </div>
+                <label className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl cursor-pointer text-sm font-medium hover:bg-blue-100 border">
+                  Upload Poster
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePosterChange}
+                    className="hidden"
+                  />
+                </label>
               </div>
-            </div>
+            </Input>
 
-            {/* DATES */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Tanggal Mulai
-                </label>
+              <Input label="Tanggal Mulai">
                 <input
                   type="date"
+                  className="input"
                   value={form.start_date}
-                  onChange={(e) => updateForm("start_date", e.target.value)}
-                  className="mt-1 w-full rounded-xl border p-3 shadow-sm focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) =>
+                    updateForm("start_date", e.target.value)
+                  }
                 />
-              </div>
+              </Input>
 
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Tanggal Selesai
-                </label>
+              <Input label="Tanggal Selesai">
                 <input
                   type="date"
+                  className="input"
                   value={form.end_date}
-                  onChange={(e) => updateForm("end_date", e.target.value)}
-                  className="mt-1 w-full rounded-xl border p-3 shadow-sm focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) =>
+                    updateForm("end_date", e.target.value)
+                  }
                 />
-              </div>
+              </Input>
             </div>
 
-            {/* STATUS */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">Status</label>
+            <Input label="Status">
               <select
+                className="input bg-white"
                 value={form.status}
-                onChange={(e) => updateForm("status", e.target.value)}
-                className="mt-1 w-full rounded-xl border p-3 bg-white shadow-sm focus:ring-2 focus:ring-blue-600"
+                onChange={(e) =>
+                  updateForm("status", e.target.value)
+                }
               >
                 <option value="draft">Draft</option>
                 <option value="active">Active</option>
                 <option value="closed">Closed</option>
               </select>
-            </div>
+            </Input>
 
-            {/* SUBMIT BUTTON */}
-            <button
-              disabled={loading}
-              className={`w-full py-3 rounded-xl text-white font-medium shadow transition ${
-                loading
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {loading ? "Menyimpan..." : "Buat Voting"}
-            </button>
+            <SubmitButton loading={saving} text="Buat Voting" />
           </form>
         </main>
       </div>
+
+      <style>{`
+        .fade-in { animation: fadeIn .25s ease-out; }
+        .fade-up { animation: fadeUp .25s ease-out; }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .input {
+          width: 100%;
+          border: 1px solid #d1d5db;
+          padding: 12px;
+          border-radius: 0.75rem;
+          box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+          outline: none;
+        }
+        .input:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 2px #2563eb40;
+        }
+        .textarea {
+          width: 100%;
+          border: 1px solid #d1d5db;
+          padding: 12px;
+          border-radius: 0.75rem;
+          min-height: 120px;
+        }
+      `}</style>
     </div>
   );
 }
