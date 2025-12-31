@@ -5,78 +5,126 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class EventController extends Controller
 {
     public function index()
     {
-        // Bisa langsung return, status ikut dari DB
-        return response()->json(Event::latest()->get());
+        return response()->json(Event::orderBy('id', 'desc')->get());
+    }
+
+    public function show($id)
+    {
+        $event = Event::find($id);
+
+        if (!$event) {
+            return response()->json([
+                'message' => 'Event tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'id'          => $event->id,
+            'title'       => $event->title,
+            'description' => $event->description,
+            'date'        => $event->date, // string yyyy-mm-dd
+            'time'        => $event->time ? substr($event->time, 0, 5) : null, // HH:mm
+            'location'    => $event->location,
+            'poster_url'  => $event->poster_url,
+            'status'      => $event->status,
+        ]);
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'date'        => 'required|date',
+            'time'        => 'required|date_format:H:i',
             'location'    => 'required|string|max:255',
-            'poster'      => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
-            'status'      => 'nullable|in:active,expired', // ✅
+            'status'      => 'nullable|in:active,expired', // ✅ terima status (optional)
+            'poster'      => 'nullable|image|max:4096',
         ]);
 
-        $posterUrl = null;
+        // ===== AUTO EXPIRE (SERVER-SIDE) =====
+        $eventDateTime = Carbon::parse($data['date'] . ' ' . $data['time']);
+        if ($eventDateTime->isPast()) {
+            $data['status'] = 'expired';
+        } else {
+            $data['status'] = $data['status'] ?? 'active';
+        }
 
+        // ===== UPLOAD POSTER =====
+        $posterUrl = null;
         if ($request->hasFile('poster')) {
             $path = $request->file('poster')->store('events', 'public');
             $posterUrl = url('storage/' . $path);
         }
 
         $event = Event::create([
-            'title'       => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'date'        => $validated['date'],
-            'location'    => $validated['location'],
+            'title'       => $data['title'],
+            'description' => $data['description'] ?? null,
+            'date'        => $data['date'],
+            'time'        => $data['time'],
+            'location'    => $data['location'],
             'poster_url'  => $posterUrl,
-            'status'      => $validated['status'] ?? 'active', // ✅ default active
+            'status'      => $data['status'],
         ]);
 
-        return response()->json(['event' => $event], 201);
-    }
-
-    public function show($id)
-    {
-        return response()->json(Event::findOrFail($id));
+        return response()->json([
+            'message' => 'Event berhasil dibuat',
+            'data'    => $event
+        ], 201);
     }
 
     public function update(Request $request, $id)
     {
         $event = Event::findOrFail($id);
 
-        $validated = $request->validate([
-            'title'       => 'nullable|string|max:255',
+        $data = $request->validate([
+            'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
-            'date'        => 'nullable|date',
-            'location'    => 'nullable|string|max:255',
-            'poster'      => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
-            'status'      => 'nullable|in:active,expired', // ✅
+            'date'        => 'required|date',
+            'time'        => 'required|date_format:H:i',
+            'location'    => 'required|string|max:255',
+            'status'      => 'required|in:active,expired',
+            'poster'      => 'nullable|image|max:4096',
         ]);
 
-        // handle poster
-        if ($request->hasFile('poster')) {
+        // ===== AUTO EXPIRE (SERVER-SIDE) =====
+        $eventDateTime = Carbon::parse($data['date'] . ' ' . $data['time']);
+        if ($eventDateTime->isPast()) {
+            $data['status'] = 'expired'; // 🔥 paksa expired walau admin pilih active
+        }
 
+        // ===== POSTER (replace) =====
+        if ($request->hasFile('poster')) {
+            // hapus poster lama jika ada
             if ($event->poster_url) {
-                $old = str_replace(url('storage') . '/', '', $event->poster_url);
-                Storage::disk('public')->delete($old);
+                $oldPath = str_replace(url('storage') . '/', '', $event->poster_url);
+                Storage::disk('public')->delete($oldPath);
             }
 
             $path = $request->file('poster')->store('events', 'public');
-            $validated['poster_url'] = url('storage/' . $path);
+            $data['poster_url'] = url('storage/' . $path);
         }
 
-        $event->update($validated);
+        $event->update([
+            'title'       => $data['title'],
+            'description' => $data['description'] ?? null,
+            'date'        => $data['date'],
+            'time'        => $data['time'],
+            'location'    => $data['location'],
+            'poster_url'  => $data['poster_url'] ?? $event->poster_url,
+            'status'      => $data['status'],
+        ]);
 
-        return response()->json(['event' => $event]);
+        return response()->json([
+            'message' => 'Event berhasil diperbarui',
+            'data'    => $event->fresh()
+        ]);
     }
 
     public function destroy($id)
@@ -84,12 +132,14 @@ class EventController extends Controller
         $event = Event::findOrFail($id);
 
         if ($event->poster_url) {
-            $old = str_replace(url('storage') . '/', '', $event->poster_url);
-            Storage::disk('public')->delete($old);
+            $oldPath = str_replace(url('storage') . '/', '', $event->poster_url);
+            Storage::disk('public')->delete($oldPath);
         }
 
         $event->delete();
 
-        return response()->json(['message' => 'Event dihapus']);
+        return response()->json([
+            'message' => 'Event berhasil dihapus'
+        ]);
     }
 }

@@ -15,6 +15,7 @@ import EditEvent from "./pages/EditEvent";
 import AddVoting from "./pages/AddVoting";
 import EditVoting from "./pages/EditVoting";
 import VotingResults from "./pages/VotingResults";
+import AdminEventParticipants from "./pages/AdminEventParticipants";
 
 // EVENT VOTE (ADMIN)
 import ManageEventVote from "./pages/ManageEventVote";
@@ -30,9 +31,9 @@ import StudentProfile from "./pages/StudentProfile";
 import EventDetails from "./pages/EventDetails";
 import EventParticipants from "./pages/EventParticipants";
 
-// =======================
-// GUARDS
-// =======================
+/* =======================
+   ROUTE GUARDS
+======================= */
 const RequireRole = ({ role, children }) => {
   const { user } = useContext(AuthContext);
   if (!user) return <Navigate to="/login" replace />;
@@ -87,6 +88,10 @@ export default function App() {
       <Route
         path="/admin/events/:id/edit"
         element={<RequireRole role="admin"><EditEvent /></RequireRole>}
+      />
+      <Route
+        path="/admin/events/:id/participants"
+        element={<RequireRole role="admin"><AdminEventParticipants /></RequireRole>}
       />
 
       {/* VOTING */}
@@ -158,7 +163,7 @@ export default function App() {
         element={<RequireRole role="student"><EventParticipants /></RequireRole>}
       />
 
-      {/* NOT FOUND */}
+      {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/login" replace />} />
 
     </Routes>

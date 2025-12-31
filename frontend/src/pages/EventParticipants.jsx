@@ -12,34 +12,26 @@ export default function EventParticipants() {
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load Event + Participants
   useEffect(() => {
     const load = async () => {
       try {
         const ev = await api.get(`/events/${id}`);
-
         if (!ev.data) {
-          Swal.fire({
-            icon: "error",
-            title: "Event Tidak Ditemukan",
-            text: "Data event tidak tersedia.",
-          });
-          setEvent(null);
+          Swal.fire("Error", "Event tidak ditemukan", "error");
           return;
         }
-
         setEvent(ev.data);
 
-        const part = await api.get(`/events/${id}/participants`);
-        setParticipants(part.data);
+        const res = await api.get(`/events/${id}/participants`);
+
+        const list = Array.isArray(res.data)
+          ? res.data
+          : res.data?.participants ?? [];
+
+        setParticipants(list);
       } catch (err) {
-        Swal.fire({
-          icon: "error",
-          title: "Gagal Memuat Data",
-          text: "Terjadi kesalahan dalam memuat event atau peserta.",
-          confirmButtonColor: "#dc2626",
-        });
-        setEvent(null);
+        Swal.fire("Error", "Gagal memuat peserta", "error");
+        setParticipants([]);
       } finally {
         setLoading(false);
       }
@@ -48,124 +40,81 @@ export default function EventParticipants() {
     load();
   }, [id]);
 
-  // ======================
-  // LOADING SKELETON
-  // ======================
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <StudentNavbar />
-
-        <div className="max-w-4xl mx-auto p-6 animate-pulse space-y-4">
-          <div className="h-6 w-40 bg-gray-300 rounded"></div>
-          <div className="h-40 bg-gray-200 rounded-xl"></div>
-          <div className="h-6 w-32 bg-gray-200 rounded"></div>
-          <div className="h-32 bg-gray-200 rounded-xl"></div>
-        </div>
+        <div className="p-6 text-center text-gray-500">Memuat...</div>
       </div>
     );
   }
 
-  // ======================
-  // EVENT NOT FOUND
-  // ======================
   if (!event) {
     return (
       <div className="min-h-screen bg-gray-50">
         <StudentNavbar />
-        <div className="max-w-4xl mx-auto p-6 text-center text-gray-600">
-          Event tidak ditemukan.
+        <div className="p-6 text-center text-gray-500">
+          Event tidak ditemukan
         </div>
       </div>
     );
   }
 
-  // ======================
-  // MAIN CONTENT
-  // ======================
   return (
     <div className="min-h-screen bg-gray-50">
       <StudentNavbar />
 
-      <div className="max-w-4xl mx-auto p-6 fade-in">
-
-        {/* Back Button */}
+      <div className="max-w-4xl mx-auto p-6">
         <button
           onClick={() => navigate(-1)}
-          className="mb-5 px-4 py-2 rounded-xl border bg-white shadow-sm hover:bg-gray-100 transition"
+          className="mb-4 px-4 py-2 bg-white border rounded-lg shadow hover:bg-gray-100"
         >
           ← Kembali
         </button>
 
-        {/* Event Header */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border mb-6">
+        <div className="bg-white rounded-xl shadow border mb-6 overflow-hidden">
           <img
-            src={
-              event.poster_url ||
-              "https://source.unsplash.com/1200x300/?event,seminar"
-            }
+            src={event.poster_url || "https://source.unsplash.com/1200x300/?event"}
             className="w-full h-40 object-cover"
+            alt={event.title}
           />
-
-          <div className="p-5">
-            <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
-
-            <p className="text-gray-600 text-sm mt-1">
-              Total Peserta Terdaftar:{" "}
-              <span className="font-semibold text-gray-900">
-                {participants.length}
-              </span>
+          <div className="p-4">
+            <h1 className="text-xl font-bold">{event.title}</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Total Peserta: <b>{participants.length}</b>
             </p>
           </div>
         </div>
 
-        {/* Participants List */}
-        <div className="bg-white rounded-2xl shadow border p-5">
-          <h2 className="text-lg font-semibold mb-4">Daftar Peserta</h2>
+        <div className="bg-white rounded-xl shadow border p-4">
+          <h2 className="font-semibold mb-3">Daftar Peserta</h2>
 
           {participants.length === 0 ? (
-            <p className="text-gray-500">Belum ada peserta yang mendaftar.</p>
+            <p className="text-gray-500">Belum ada peserta.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b text-gray-600 bg-gray-50">
-                    <th className="py-3 px-3 text-left">Nama</th>
-                    <th className="py-3 px-3 text-left">Email</th>
-                    <th className="py-3 px-3 text-left">Tanggal Daftar</th>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100 text-gray-600">
+                <tr>
+                  <th className="text-left p-2">Nama</th>
+                  <th className="text-left p-2">Email</th>
+                  <th className="text-left p-2">Tanggal Daftar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {participants.map((p) => (
+                  <tr key={p.id} className="border-t">
+                    <td className="p-2">{p.user?.name ?? "-"}</td>
+                    <td className="p-2">{p.user?.email ?? "-"}</td>
+                    <td className="p-2">
+                      {new Date(p.created_at).toLocaleString("id-ID")}
+                    </td>
                   </tr>
-                </thead>
-
-                <tbody>
-                  {participants.map((p) => (
-                    <tr
-                      key={p.id}
-                      className="border-b hover:bg-gray-50 transition"
-                    >
-                      <td className="py-2.5 px-3">{p.name}</td>
-                      <td className="py-2.5 px-3">{p.email}</td>
-                      <td className="py-2.5 px-3">
-                        {new Date(p.created_at).toLocaleString("id-ID")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-
       </div>
-
-      <style>{`
-        .fade-in {
-          animation: fadeIn .25s ease-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }

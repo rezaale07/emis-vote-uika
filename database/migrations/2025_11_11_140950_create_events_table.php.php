@@ -12,15 +12,25 @@ return new class extends Migration
     public function up(): void
 {
     Schema::create('events', function (Blueprint $table) {
-        $table->id();
-        $table->string('title');
-        $table->text('description')->nullable();
-        $table->date('date');
-        $table->string('location');
-        $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+    $table->id();
 
-        $table->timestamps();
-    });
+    $table->string('title');
+    $table->text('description')->nullable();
+
+    $table->date('date');                 // tanggal event
+    $table->time('time')->nullable();     // ⏰ JAM EVENT (NEW)
+
+    $table->string('location')->nullable();
+
+    $table->string('poster_url')->nullable();
+
+    $table->enum('status', ['active', 'expired'])->default('active');
+
+    $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+
+    $table->timestamps();
+});
+
 }
 
 
