@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
 
 // AUTH
+import Welcome from "./pages/Welcome";
 import Login from "./pages/Login";
 
 // ADMIN
@@ -36,13 +37,16 @@ import EventParticipants from "./pages/EventParticipants";
 ======================= */
 const RequireRole = ({ role, children }) => {
   const { user } = useContext(AuthContext);
+
   if (!user) return <Navigate to="/login" replace />;
   return user.role === role ? children : <Navigate to="/login" replace />;
 };
 
 const RedirectIfAuthed = ({ children }) => {
   const { user } = useContext(AuthContext);
+
   if (!user) return children;
+
   return user.role === "admin"
     ? <Navigate to="/admin" replace />
     : <Navigate to="/student" replace />;
@@ -52,10 +56,9 @@ export default function App() {
   return (
     <Routes>
 
-      {/* ROOT */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* ================= PUBLIC ================= */}
+      <Route path="/" element={<Welcome />} />
 
-      {/* LOGIN */}
       <Route
         path="/login"
         element={
@@ -66,7 +69,6 @@ export default function App() {
       />
 
       {/* ================= ADMIN ================= */}
-
       <Route
         path="/admin"
         element={
@@ -133,7 +135,6 @@ export default function App() {
       />
 
       {/* ================= STUDENT ================= */}
-
       <Route
         path="/student"
         element={<RequireRole role="student"><StudentDashboard /></RequireRole>}
@@ -163,8 +164,8 @@ export default function App() {
         element={<RequireRole role="student"><EventParticipants /></RequireRole>}
       />
 
-      {/* FALLBACK */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* ================= FALLBACK ================= */}
+      <Route path="*" element={<Navigate to="/" replace />} />
 
     </Routes>
   );
