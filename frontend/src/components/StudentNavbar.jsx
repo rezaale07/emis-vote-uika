@@ -63,23 +63,29 @@ export default function StudentNavbar() {
               EMIS-Vote
             </div>
 
-            {/* DESKTOP TABS */}
+            {/* DESKTOP MENU */}
             <nav className="hidden md:flex items-center gap-3">
-              <NavLink to="/student" end className={({ isActive }) => tabClass(isActive)}>
-                My Events
+              <NavLink to="/student/events" className={({ isActive }) => tabClass(isActive)}>
+                Event
               </NavLink>
+
               <NavLink to="/student/voting" className={({ isActive }) => tabClass(isActive)}>
                 Voting
               </NavLink>
+
               <NavLink to="/student/profile" className={({ isActive }) => tabClass(isActive)}>
                 Profile
+              </NavLink>
+
+              <NavLink to="/timeline" className={({ isActive }) => tabClass(isActive)}>
+                Timeline
               </NavLink>
             </nav>
           </div>
 
           {/* RIGHT */}
           <div className="flex items-center gap-4">
-            {/* PROFILE (NON CLICKABLE) */}
+            {/* USER INFO */}
             <div className="hidden sm:flex items-center gap-2 cursor-default">
               <div className="grid h-9 w-9 place-items-center rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
                 {initials}
@@ -93,7 +99,7 @@ export default function StudentNavbar() {
               </div>
             </div>
 
-            {/* LOGOUT BUTTON */}
+            {/* LOGOUT */}
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium
@@ -107,14 +113,36 @@ export default function StudentNavbar() {
         {/* MOBILE MENU */}
         {open && (
           <div className="mt-3 flex flex-col gap-2 md:hidden">
-            <NavLink to="/student" end className={({ isActive }) => tabClass(isActive)} onClick={() => setOpen(false)}>
-              My Events
+            <NavLink
+              to="/student/events"
+              className={({ isActive }) => tabClass(isActive)}
+              onClick={() => setOpen(false)}
+            >
+              Event
             </NavLink>
-            <NavLink to="/student/voting" className={({ isActive }) => tabClass(isActive)} onClick={() => setOpen(false)}>
+
+            <NavLink
+              to="/student/voting"
+              className={({ isActive }) => tabClass(isActive)}
+              onClick={() => setOpen(false)}
+            >
               Voting
             </NavLink>
-            <NavLink to="/student/profile" className={({ isActive }) => tabClass(isActive)} onClick={() => setOpen(false)}>
+
+            <NavLink
+              to="/student/profile"
+              className={({ isActive }) => tabClass(isActive)}
+              onClick={() => setOpen(false)}
+            >
               Profile
+            </NavLink>
+
+            <NavLink
+              to="/timeline"
+              className={({ isActive }) => tabClass(isActive)}
+              onClick={() => setOpen(false)}
+            >
+              Timeline
             </NavLink>
           </div>
         )}

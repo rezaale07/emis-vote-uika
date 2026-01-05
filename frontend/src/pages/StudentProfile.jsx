@@ -63,7 +63,7 @@ export default function StudentProfile() {
     const load = async () => {
       try {
         const res = await api.get(`/users/${user.id}/history`);
-        setHistory(res.data || []);
+setHistory(res.data?.history || []);
       } catch (err) {
         console.error("Gagal mengambil riwayat:", err);
       } finally {
@@ -301,51 +301,7 @@ export default function StudentProfile() {
           </section>
         </div>
 
-        {/* =================== HISTORY =================== */}
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-slate-900">
-              Riwayat Event
-            </h3>
-            <p className="text-xs text-slate-500">
-              Event yang pernah kamu daftarkan / ikuti.
-            </p>
-          </div>
-
-          {loadingHistory ? (
-            <div className="mt-4 space-y-3">
-              <HistorySkeleton />
-              <HistorySkeleton />
-            </div>
-          ) : history.length === 0 ? (
-            <p className="text-slate-500 mt-3 text-sm">
-              Belum ada riwayat event yang tercatat.
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {history.map((h) => (
-                <li
-                  key={h.id}
-                  className="p-4 rounded-2xl border bg-slate-50 hover:bg-slate-100 transition shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-2"
-                >
-                  <div>
-                    <span className="font-semibold text-slate-900 text-sm md:text-base">
-                      {h.event_title}
-                    </span>
-                    <p className="text-xs text-slate-600 mt-1">
-                      Tanggal: {formatDate(h.event_date)}
-                    </p>
-                  </div>
-
-                  <span className="inline-flex items-center text-[11px] px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 font-medium">
-                    Event
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+             </div>
 
       <style>{`
         .fade-in { animation: fadeIn .35s ease-out; }
