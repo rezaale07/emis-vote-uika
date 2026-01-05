@@ -30,8 +30,6 @@ import VotingResultsStudent from "./pages/VotingResultsStudent";
 import StudentProfile from "./pages/StudentProfile";
 import EventDetails from "./pages/EventDetails";
 import EventParticipants from "./pages/EventParticipants";
-
-// TIMELINE
 import Timeline from "./pages/Timeline";
 
 /* =======================
@@ -54,7 +52,6 @@ const RedirectIfAuthed = ({ children }) => {
 export default function App() {
   return (
     <Routes>
-
       {/* ROOT */}
       <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -74,76 +71,38 @@ export default function App() {
         element={<RequireRole role="admin"><AdminDashboard /></RequireRole>}
       />
 
-      {/* ADMIN EVENTS */}
       <Route path="/admin/events" element={<RequireRole role="admin"><ManageEvents /></RequireRole>} />
       <Route path="/admin/events/add" element={<RequireRole role="admin"><AddEvent /></RequireRole>} />
       <Route path="/admin/events/:id/edit" element={<RequireRole role="admin"><EditEvent /></RequireRole>} />
       <Route path="/admin/events/:id/participants" element={<RequireRole role="admin"><AdminEventParticipants /></RequireRole>} />
 
-      {/* ADMIN VOTING */}
       <Route path="/admin/voting" element={<RequireRole role="admin"><ManageVoting /></RequireRole>} />
       <Route path="/admin/voting/add" element={<RequireRole role="admin"><AddVoting /></RequireRole>} />
       <Route path="/admin/voting/:id/edit" element={<RequireRole role="admin"><EditVoting /></RequireRole>} />
       <Route path="/admin/results/:id" element={<RequireRole role="admin"><VotingResults /></RequireRole>} />
 
-      {/* EVENT VOTE */}
       <Route path="/admin/voting/:id/event-vote" element={<RequireRole role="admin"><ManageEventVote /></RequireRole>} />
       <Route path="/admin/voting/:id/event-vote/add" element={<RequireRole role="admin"><AddEventVote /></RequireRole>} />
       <Route path="/admin/voting/:id/event-vote/:optionId/edit" element={<RequireRole role="admin"><EditEventVote /></RequireRole>} />
 
-      {/* ADMIN STUDENTS */}
       <Route path="/admin/students" element={<RequireRole role="admin"><ManageStudents /></RequireRole>} />
 
       {/* ================= STUDENT ================= */}
-
-      {/* redirect /student → /student/events */}
       <Route path="/student" element={<Navigate to="/student/events" replace />} />
 
-      <Route
-        path="/student/events"
-        element={<RequireRole role="student"><StudentDashboard /></RequireRole>}
-      />
+      <Route path="/student/events" element={<RequireRole role="student"><StudentDashboard /></RequireRole>} />
+      <Route path="/student/voting" element={<RequireRole role="student"><StudentVoting /></RequireRole>} />
+      <Route path="/student/voting/:id" element={<RequireRole role="student"><StudentVoteDetail /></RequireRole>} />
+      <Route path="/student/voting/:id/results" element={<RequireRole role="student"><VotingResultsStudent /></RequireRole>} />
+      <Route path="/student/profile" element={<RequireRole role="student"><StudentProfile /></RequireRole>} />
 
-      <Route
-        path="/student/profile"
-        element={<RequireRole role="student"><StudentProfile /></RequireRole>}
-      />
+      <Route path="/event/:id" element={<RequireRole role="student"><EventDetails /></RequireRole>} />
+      <Route path="/event/:id/participants" element={<RequireRole role="student"><EventParticipants /></RequireRole>} />
 
-      <Route
-        path="/student/voting"
-        element={<RequireRole role="student"><StudentVoting /></RequireRole>}
-      />
-
-      <Route
-        path="/student/voting/:id"
-        element={<RequireRole role="student"><StudentVoteDetail /></RequireRole>}
-      />
-
-      <Route
-        path="/student/voting/:id/results"
-        element={<RequireRole role="student"><VotingResultsStudent /></RequireRole>}
-      />
-
-      {/* EVENT DETAIL (STUDENT) */}
-      <Route
-        path="/event/:id"
-        element={<RequireRole role="student"><EventDetails /></RequireRole>}
-      />
-
-      <Route
-        path="/event/:id/participants"
-        element={<RequireRole role="student"><EventParticipants /></RequireRole>}
-      />
-
-      {/* TIMELINE */}
-      <Route
-        path="/timeline"
-        element={<RequireRole role="student"><Timeline /></RequireRole>}
-      />
+      <Route path="/timeline" element={<RequireRole role="student"><Timeline /></RequireRole>} />
 
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/login" replace />} />
-
     </Routes>
   );
 }
