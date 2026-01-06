@@ -1,252 +1,336 @@
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import React from "react";
 
+/* =========================
+   HOOK: REVEAL ON SCROLL
+========================= */
+function useRevealOnScroll() {
+  useEffect(() => {
+    const els = document.querySelectorAll("[data-reveal]");
+
+    const onScroll = () => {
+      const vh = window.innerHeight;
+      els.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < vh - 120) {
+          el.classList.add("reveal-show");
+        }
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+}
+
+/* =========================
+   HOOK: NAVBAR SHRINK
+========================= */
+function useNavbarShrink() {
+  const [shrink, setShrink] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShrink(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return shrink;
+}
+
+/* =========================
+   MAIN COMPONENT
+========================= */
 export default function Welcome() {
+  useRevealOnScroll();
+  const shrink = useNavbarShrink();
+  const featureRef = useRef(null);
+
+  const scrollToFeature = () => {
+    featureRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <div className="min-h-screen bg-white text-slate-800">
-      {/* Top bar */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-100 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+    <div className="min-h-screen bg-slate-50 text-slate-800 overflow-x-hidden">
+
+      {/* ================= HEADER ================= */}
+      <header
+        className={`sticky top-0 z-50 border-b transition-all ${
+          shrink ? "bg-white/90 backdrop-blur shadow-sm" : "bg-white/70 backdrop-blur"
+        }`}
+      >
+        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <span className="text-sm font-bold">E</span>
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-white font-bold">
+              E
             </div>
-            <span className="text-sm font-semibold text-slate-900">EMIS-Vote UIKA</span>
+            <div className="leading-tight">
+              <p className="text-sm font-semibold">EMIS-Vote UIKA</p>
+              <p className="text-xs text-slate-500 -mt-0.5">
+                Event & Voting Kampus
+              </p>
+            </div>
           </div>
 
-          <Link to="/login" className="inline-block">
-  <button className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:translate-y-[1px]">
-    Login
-    <span aria-hidden className="text-base leading-none">→</span>
-  </button>
-</Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={scrollToFeature}
+              className="hidden sm:inline-flex btn-secondary"
+            >
+              Lihat Fitur ↓
+            </button>
 
+            <Link to="/login">
+              <button className="btn-primary">
+                Login →
+              </button>
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <main>
-        <section className="bg-gradient-to-b from-slate-50 to-white">
-          <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-16">
-            {/* Left */}
-            <div>
-              <div className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+      {/* ================= HERO ================= */}
+      <section className="relative bg-gradient-to-b from-slate-100 via-white to-slate-50">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-blue-200/40 blur-3xl" />
+          <div className="absolute top-20 -right-28 h-80 w-80 rounded-full bg-indigo-200/40 blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl px-4 py-20">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+
+            {/* LEFT */}
+            <div data-reveal className="reveal-base">
+              <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
                 Universitas Ibn Khaldun Bogor
-              </div>
+              </span>
 
-              <p className="mt-4 text-sm font-medium text-slate-700">Platform Event &amp; Voting Kampus</p>
+              <p className="mt-4 text-sm font-medium text-slate-600">
+                Platform Event & Voting Kampus
+              </p>
 
-              <h1 className="mt-3 text-3xl font-bold leading-tight text-slate-900 md:text-4xl">
-                Sistem manajemen event dan voting digital yang modern, aman, dan mudah digunakan
+              <h1 className="mt-3 text-4xl md:text-[2.6rem] font-extrabold leading-tight">
+                Event & Voting Digital
+                <br />
+                <span className="text-blue-600">
+                  Modern • Aman • Transparan
+                </span>
               </h1>
 
-              <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600">
-                Sistem manajemen event dan voting digital yang modern, aman, dan mudah digunakan untuk seluruh sivitas
-                akademika UIKA.
+              <p className="mt-4 max-w-xl text-sm text-slate-600">
+                EMIS-Vote adalah sistem manajemen event dan voting digital
+                berbasis web yang dirancang untuk meningkatkan efisiensi,
+                transparansi, dan partisipasi kegiatan kampus.
               </p>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                 <Link to="/login">
-                <button className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:translate-y-[1px]">
-                  Mulai Sekarang
-                  <span aria-hidden className="text-base leading-none">
-                    →
-                  </span>
-                </button>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link to="/login">
+                  <button className="btn-primary">
+                    Mulai Sekarang →
+                  </button>
                 </Link>
-
-                <button className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-                  Pelajari Fitur
+                <button onClick={scrollToFeature} className="btn-secondary">
+                  Pelajari Fitur ↓
                 </button>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3 text-xs text-slate-500">
+                <Pill>UI Modern</Pill>
+                <Pill>Akses Cepat</Pill>
+                <Pill>Role-based</Pill>
+                <Pill>Real-time</Pill>
               </div>
             </div>
 
-            {/* Right */}
-            <div className="relative">
-              <div className="relative overflow-hidden rounded-2xl bg-white shadow-[0_20px_60px_-30px_rgba(2,6,23,0.35)] ring-1 ring-slate-100">
-                {/* Replace src with your real image */}
+            {/* RIGHT */}
+            <div data-reveal className="reveal-base">
+              <div className="rounded-3xl overflow-hidden shadow-xl ring-1 ring-slate-200 bg-white">
                 <img
                   src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?q=80&w=1600&auto=format&fit=crop"
-                  alt="Event kampus"
-                  className="h-[260px] w-full object-cover md:h-[320px]"
+                  alt="Event Kampus"
+                  className="h-[340px] w-full object-cover hover:scale-105 transition duration-700"
                 />
               </div>
-
-              {/* Badges */}
-              <div className="pointer-events-none absolute -right-2 -top-4 md:-right-4">
-                <div className="w-[150px] rounded-xl bg-white p-3 shadow-lg ring-1 ring-slate-100">
-                  <div className="flex items-start gap-2">
-                    <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-50 text-blue-600">
-                      <span className="text-lg">📅</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-600">Events Aktif</p>
-                      <p className="text-lg font-bold text-slate-900">25+</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pointer-events-none absolute -left-2 bottom-6 md:-left-4">
-                <div className="w-[190px] rounded-xl bg-white p-3 shadow-lg ring-1 ring-slate-100">
-                  <div className="flex items-start gap-2">
-                    <div className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
-                      <span className="text-lg">✅</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-600">Total Mahasiswa</p>
-                      <p className="text-lg font-bold text-slate-900">5000+</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
+
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Features */}
-        <section className="py-14">
-          <div className="mx-auto max-w-6xl px-4">
-            <div className="text-center">
-              <p className="text-xs font-semibold tracking-wide text-blue-600">Fitur Unggulan</p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-900 md:text-xl">
-                Platform lengkap untuk mengelola event kampus dan sistem voting digital
-              </h2>
-            </div>
+      {/* ================= FEATURES ================= */}
+      <section ref={featureRef} className="py-20">
+        <div className="mx-auto max-w-6xl px-4">
 
-            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-              <FeatureCard
-                icon="📅"
-                title="Event Management"
-                desc="Kelola dan ikuti berbagai acara kampus dengan mudah"
-              />
-              <FeatureCard icon="🗳️" title="Sistem Voting" desc="Voting online yang aman dan transparan untuk berbagai pemilihan" />
-              <FeatureCard icon="📈" title="Real-time Analytics" desc="Pantau hasil voting dan partisipasi event secara real-time" muted />
-            </div>
-
-            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-              <SmallCard title="Keamanan Terjamin" desc="Data dan voting Anda dilindungi dengan sistem keamanan terpercaya" />
-              <SmallCard title="Cepat & Efisien" desc="Interface yang cepat dan mudah digunakan untuk semua pengguna" />
-              <SmallCard title="User-Friendly" desc="Dirancang khusus untuk kemudahan mahasiswa dan admin" />
-            </div>
-          </div>
-        </section>
-
-        {/* Why section (blue) */}
-        <section className="bg-blue-700 py-16 text-white">
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 md:grid-cols-2">
-            <div>
-              <h3 className="text-xl font-bold md:text-2xl">Kenapa Memilih EMIS-Vote?</h3>
-              <p className="mt-3 max-w-xl text-sm text-white/85">
-                Platform yang dirancang khusus untuk meningkatkan partisipasi dan transparansi dalam kegiatan kampus
-              </p>
-
-              <ul className="mt-6 space-y-3 text-sm text-white/90">
-                <CheckItem> Akses dari mana saja, kapan saja </CheckItem>
-                <CheckItem> Notifikasi real-time untuk event &amp; voting </CheckItem>
-                <CheckItem> Dashboard interaktif dan informatif </CheckItem>
-                <CheckItem> Laporan dan statistik lengkap </CheckItem>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-6 ring-1 ring-white/15">
-              <div className="space-y-4">
-                <StatRow icon="👥" value="5000+" label="Mahasiswa Aktif" />
-                <StatRow icon="📅" value="100+" label="Events Terlaksana" />
-                <StatRow icon="🧾" value="10000+" label="Votes Tercatat" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="py-14">
-          <div className="mx-auto max-w-6xl px-4 text-center">
-            <p className="text-xs font-semibold text-blue-600">Siap Untuk Memulai?</p>
-            <p className="mt-2 text-sm text-slate-600">
-              Bergabunglah dengan ribuan mahasiswa UIKA yang sudah menggunakan EMIS-Vote
+          <div data-reveal className="reveal-base text-center">
+            <p className="text-xs font-semibold text-blue-600 tracking-wide">
+              FITUR UNGGULAN
             </p>
-
-            <div className="mt-6">
-                 <Link to="/login">
-              <button className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:translate-y-[1px]">
-                Login Sekarang
-                <span aria-hidden className="text-base leading-none">
-                  →
-                </span>
-              </button>
-                </Link>
-            </div>
+            <h2 className="mt-2 text-2xl md:text-3xl font-extrabold">
+              Solusi Digital Kampus Terpadu
+            </h2>
+            <p className="mt-3 text-sm text-slate-600">
+              Seluruh kebutuhan event dan voting kampus dalam satu platform.
+            </p>
           </div>
-        </section>
-      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-100">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-slate-500 md:flex-row">
+          <div className="mt-12 grid md:grid-cols-3 gap-6">
+            <FeatureCard
+              icon="📅"
+              title="Event Management"
+              desc="Kelola event, poster, jadwal, dan peserta secara terstruktur."
+            />
+            <FeatureCard
+              icon="🗳️"
+              title="Voting Digital"
+              desc="Sistem voting online yang aman dan transparan."
+            />
+            <FeatureCard
+              icon="📊"
+              title="Monitoring & Laporan"
+              desc="Pantau partisipasi dan aktivitas event secara real-time."
+            />
+          </div>
+
+          <div className="mt-8 grid md:grid-cols-3 gap-6">
+            <SmallCard
+              title="Keamanan Terjamin"
+              desc="Autentikasi dan validasi data berbasis role."
+            />
+            <SmallCard
+              title="Cepat & Efisien"
+              desc="UI ringan dan responsif di berbagai perangkat."
+            />
+            <SmallCard
+              title="User Friendly"
+              desc="Mudah digunakan oleh mahasiswa maupun admin."
+            />
+          </div>
+
+        </div>
+      </section>
+
+      {/* ================= CTA ================= */}
+      <section className="bg-blue-700 py-20 text-white">
+        <div data-reveal className="reveal-base mx-auto max-w-6xl px-4 text-center">
+          <h3 className="text-2xl md:text-3xl font-extrabold">
+            Siap Menggunakan EMIS-Vote?
+          </h3>
+          <p className="mt-3 text-sm text-white/90">
+            Login dan mulai kelola event serta voting kampus dengan mudah.
+          </p>
+
+          <div className="mt-7 flex justify-center gap-3">
+            <Link to="/login">
+              <button className="btn-light">
+                Login Sekarang →
+              </button>
+            </Link>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="btn-outline"
+            >
+              Kembali ke Atas ↑
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= FOOTER ================= */}
+      <footer className="border-t bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-slate-500 flex flex-col md:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-blue-600 text-white">
-              <span className="text-xs font-bold">E</span>
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-blue-600 text-white font-bold">
+              E
             </div>
-            <span>EMIS-Vote UIKA</span>
+            EMIS-Vote UIKA
           </div>
           <div className="text-center md:text-right">
-            <p>© 2025 Universitas Ibn Khaldun Bogor. All rights reserved.</p>
-            <p className="mt-1">Powered by UIKA IT Division</p>
+            © 2025 Universitas Ibn Khaldun Bogor
+            <br />Powered by UIKA IT Division
           </div>
         </div>
       </footer>
+
+      {/* ================= STYLES ================= */}
+      <style>{`
+        .btn-primary{
+          background:#2563eb;
+          color:white;
+          padding:.75rem 1.5rem;
+          border-radius:9999px;
+          font-size:.875rem;
+          font-weight:700;
+          transition:.2s;
+        }
+        .btn-primary:hover{ background:#1d4ed8; transform:translateY(-1px); }
+
+        .btn-secondary{
+          background:white;
+          border:1px solid #e2e8f0;
+          padding:.75rem 1.5rem;
+          border-radius:9999px;
+          font-size:.875rem;
+          font-weight:700;
+        }
+        .btn-secondary:hover{ background:#f1f5f9; }
+
+        .btn-light{
+          background:white;
+          color:#1d4ed8;
+          padding:.75rem 1.5rem;
+          border-radius:9999px;
+          font-weight:700;
+        }
+
+        .btn-outline{
+          border:1px solid white;
+          padding:.75rem 1.5rem;
+          border-radius:9999px;
+          font-weight:700;
+        }
+
+        .reveal-base{
+          opacity:0;
+          transform:translateY(30px);
+          transition:.8s ease;
+        }
+        .reveal-show{
+          opacity:1;
+          transform:none;
+        }
+      `}</style>
     </div>
   );
 }
 
-/* ---------- Small components ---------- */
+/* =========================
+   SMALL COMPONENTS
+========================= */
 
-function FeatureCard({ icon, title, desc, muted = false }) {
+function Pill({ children }) {
   return (
-    <div
-      className={[
-        "rounded-2xl border border-slate-100 bg-white p-6 shadow-sm",
-        muted ? "opacity-60" : "opacity-100",
-      ].join(" ")}
-    >
-      <div className="grid h-12 w-12 place-items-center rounded-xl bg-blue-50 text-blue-700">
-        <span className="text-xl">{icon}</span>
-      </div>
-      <h4 className="mt-4 text-sm font-semibold text-slate-900">{title}</h4>
-      <p className="mt-2 text-xs leading-relaxed text-slate-600">{desc}</p>
+    <span className="rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+      {children}
+    </span>
+  );
+}
+
+function FeatureCard({ icon, title, desc }) {
+  return (
+    <div data-reveal className="reveal-base rounded-3xl bg-white border p-6 shadow-sm hover:-translate-y-2 hover:shadow-xl transition">
+      <div className="text-2xl">{icon}</div>
+      <h4 className="mt-4 text-sm font-extrabold">{title}</h4>
+      <p className="mt-2 text-xs text-slate-600">{desc}</p>
     </div>
   );
 }
 
 function SmallCard({ title, desc }) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-      <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
-      <p className="mt-2 text-xs leading-relaxed text-slate-600">{desc}</p>
-    </div>
-  );
-}
-
-function CheckItem({ children }) {
-  return (
-    <li className="flex items-start gap-3">
-      <span className="mt-0.5 inline-grid h-5 w-5 place-items-center rounded-full bg-white/15 text-white">
-        ✓
-      </span>
-      <span>{children}</span>
-    </li>
-  );
-}
-
-function StatRow({ icon, value, label }) {
-  return (
-    <div className="flex items-center gap-4 rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
-      <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-lg">{icon}</div>
-      <div className="flex-1">
-        <p className="text-lg font-bold leading-none">{value}</p>
-        <p className="mt-1 text-xs text-white/80">{label}</p>
-      </div>
+    <div className="rounded-3xl bg-white border p-6 shadow-sm hover:shadow-md transition">
+      <h4 className="text-sm font-extrabold">{title}</h4>
+      <p className="mt-2 text-xs text-slate-600">{desc}</p>
     </div>
   );
 }

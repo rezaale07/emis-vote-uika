@@ -4,6 +4,7 @@ import { AuthContext } from "./context/AuthContext";
 
 // AUTH
 import Login from "./pages/Login";
+import Welcome from "./pages/Welcome";
 
 // ADMIN
 import AdminDashboard from "./pages/AdminDashboard";
@@ -52,10 +53,10 @@ const RedirectIfAuthed = ({ children }) => {
 export default function App() {
   return (
     <Routes>
-      {/* ROOT */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* ========= LANDING PAGE ========= */}
+      <Route path="/" element={<Welcome />} />
 
-      {/* LOGIN */}
+      {/* ========= LOGIN ========= */}
       <Route
         path="/login"
         element={
@@ -66,11 +67,7 @@ export default function App() {
       />
 
       {/* ================= ADMIN ================= */}
-      <Route
-        path="/admin"
-        element={<RequireRole role="admin"><AdminDashboard /></RequireRole>}
-      />
-
+      <Route path="/admin" element={<RequireRole role="admin"><AdminDashboard /></RequireRole>} />
       <Route path="/admin/events" element={<RequireRole role="admin"><ManageEvents /></RequireRole>} />
       <Route path="/admin/events/add" element={<RequireRole role="admin"><AddEvent /></RequireRole>} />
       <Route path="/admin/events/:id/edit" element={<RequireRole role="admin"><EditEvent /></RequireRole>} />
@@ -89,7 +86,6 @@ export default function App() {
 
       {/* ================= STUDENT ================= */}
       <Route path="/student" element={<Navigate to="/student/events" replace />} />
-
       <Route path="/student/events" element={<RequireRole role="student"><StudentDashboard /></RequireRole>} />
       <Route path="/student/voting" element={<RequireRole role="student"><StudentVoting /></RequireRole>} />
       <Route path="/student/voting/:id" element={<RequireRole role="student"><StudentVoteDetail /></RequireRole>} />
@@ -99,10 +95,11 @@ export default function App() {
       <Route path="/event/:id" element={<RequireRole role="student"><EventDetails /></RequireRole>} />
       <Route path="/event/:id/participants" element={<RequireRole role="student"><EventParticipants /></RequireRole>} />
 
+      {/* ========= TIMELINE (TETAP) ========= */}
       <Route path="/timeline" element={<RequireRole role="student"><Timeline /></RequireRole>} />
 
-      {/* FALLBACK */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* ========= FALLBACK ========= */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

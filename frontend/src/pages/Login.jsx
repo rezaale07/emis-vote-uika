@@ -25,7 +25,6 @@ export default function Login() {
 
       login(data);
 
-      // SUCCESS POPUP
       await Swal.fire({
         icon: "success",
         title: "Login Berhasil",
@@ -39,17 +38,13 @@ export default function Login() {
       } else {
         navigate("/student", { replace: true });
       }
-
     } catch (err) {
-
-      // ERROR POPUP
       Swal.fire({
         icon: "error",
         title: "Login Gagal",
         text: "NPM/Email atau Password yang kamu masukkan salah.",
         confirmButtonColor: "#dc2626",
       });
-
     } finally {
       setLoading(false);
     }
@@ -57,8 +52,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen grid md:grid-cols-2 bg-gray-50 fade-in">
-
-      {/* LEFT IMAGE / BRANDING */}
+      {/* LEFT IMAGE */}
       <div className="relative hidden md:block">
         <img
           src="https://images.unsplash.com/photo-1523246191549-2f9b3f1f3b9f?q=80&w=1600&auto=format&fit=crop"
@@ -81,8 +75,17 @@ export default function Login() {
       <div className="flex items-center justify-center p-6">
         <form
           onSubmit={submit}
-          className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border"
+          className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border relative"
         >
+          {/* BACK BUTTON */}
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="absolute left-5 top-5 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+          >
+            ← Kembali
+          </button>
+
           <h2 className="text-2xl font-bold text-center text-gray-900">
             Login
           </h2>
@@ -91,7 +94,7 @@ export default function Login() {
           </p>
 
           {/* LOGIN FIELD */}
-          <label className="block mt-5 text-sm font-medium text-gray-700">
+          <label className="block mt-6 text-sm font-medium text-gray-700">
             NPM / Email
           </label>
           <input
@@ -103,7 +106,7 @@ export default function Login() {
             placeholder="contoh: 2020xxxxxx / email@uika-bogor.ac.id"
           />
 
-          {/* PASSWORD FIELD */}
+          {/* PASSWORD */}
           <label className="block mt-4 text-sm font-medium text-gray-700">
             Password
           </label>
@@ -126,7 +129,7 @@ export default function Login() {
             </button>
           </div>
 
-          {/* SUBMIT BUTTON */}
+          {/* SUBMIT */}
           <button
             disabled={loading}
             className={`w-full mt-6 py-3 rounded-xl text-white font-semibold shadow transition ${
@@ -153,7 +156,6 @@ export default function Login() {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-
     </div>
   );
 }
