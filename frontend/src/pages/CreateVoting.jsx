@@ -1,9 +1,22 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { createVoting } from "../services/api";
 import Swal from "sweetalert2";
+
+/* =========================
+   INPUT WRAPPER
+========================= */
+function Field({ label, required, children }) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-slate-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 export default function CreateVoting() {
   const navigate = useNavigate();
@@ -18,7 +31,7 @@ export default function CreateVoting() {
 
   const [poster, setPoster] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -26,35 +39,24 @@ export default function CreateVoting() {
     };
   }, [preview]);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const updateForm = (key, value) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
 
+  /* =========================
+     POSTER
+  ========================= */
   const handlePoster = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    // VALIDASI SIZE
     if (file.size > 4 * 1024 * 1024) {
-      Swal.fire({
-        icon: "warning",
-        title: "Ukuran Terlalu Besar",
-        text: "Poster maksimal 4MB.",
-        confirmButtonText: "Mengerti",
-        confirmButtonColor: "#2563eb",
-      });
+      Swal.fire("Peringatan", "Poster maksimal 4MB", "warning");
       return;
     }
 
-    // VALIDASI TYPE
     const allowed = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowed.includes(file.type)) {
-      Swal.fire({
-        icon: "error",
-        title: "Format Tidak Valid",
-        text: "Poster harus berformat JPG atau PNG.",
-        confirmButtonColor: "#2563eb",
-      });
+      Swal.fire("Format Tidak Valid", "Poster harus JPG atau PNG", "error");
       return;
     }
 
@@ -62,169 +64,214 @@ export default function CreateVoting() {
     setPreview(URL.createObjectURL(file));
   };
 
+  /* =========================
+     SUBMIT
+  ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+
+    if (!form.title.trim()) {
+      return Swal.fire("Validasi", "Judul voting wajib diisi", "warning");
+    }
+
+    if (form.start_date && form.end_date && form.start_date > form.end_date) {
+      return Swal.fire(
+        "Tanggal Tidak Valid",
+        "Tanggal selesai tidak boleh sebelum tanggal mulai",
+        "error"
+      );
+    }
+
+    setSaving(true);
 
     const fd = new FormData();
-    Object.keys(form).forEach((key) => fd.append(key, form[key]));
+    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
     if (poster) fd.append("poster", poster);
 
     try {
       await createVoting(fd);
 
-      // SUKSES
       Swal.fire({
         icon: "success",
-        title: "Voting Dibuat!",
-        text: "Voting berhasil ditambahkan ke sistem.",
-        confirmButtonColor: "#2563eb",
-      }).then(() => {
-        navigate("/admin/voting");
+        title: "Voting Berhasil Dibuat",
+        text: "Data voting berhasil disimpan.",
+        timer: 1400,
+        showConfirmButton: false,
       });
+
+      setTimeout(() => navigate("/admin/voting"), 1200);
     } catch (err) {
-      console.error(err);
-
-      // GAGAL
-      Swal.fire({
-        icon: "error",
-        title: "Gagal Membuat Voting",
-        text: "Terjadi kesalahan saat menyimpan voting.",
-        confirmButtonColor: "#dc2626",
-      });
+      Swal.fire(
+        "Gagal",
+        err?.response?.data?.message || "Terjadi kesalahan",
+        "error"
+      );
+    } finally {
+      setSaving(false);
     }
-
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex overflow-hidden">
+    <div className="min-h-screen bg-slate-50">
       <Sidebar />
 
-      <div className="flex-1 md:ml-64 flex flex-col">
-        <Navbar title="Create Voting" />
+      <div className="md:pl-64">
+        <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
 
-        <div className="px-4 sm:px-6 lg:px-8 py-6 w-full max-w-4xl mx-auto">
+          {/* HEADER */}
+          <div>
+            <button
+              onClick={() => navigate(-1)}
+              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
+            >
+              ← Kembali
+            </button>
 
-          {/* Back Button */}
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-6 rounded-lg border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 transition"
-          >
-            ← Kembali
-          </button>
+            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
+              Voting
+            </p>
+            <h1 className="mt-2 text-2xl font-extrabold text-slate-900">
+              Buat Voting Baru
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Tambahkan voting baru untuk pemilihan kampus.
+            </p>
+          </div>
 
-          <main className="rounded-2xl border bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-6 text-gray-900">
-              Create Voting
-            </h2>
-
+          {/* FORM CARD */}
+          <main className="rounded-3xl border bg-white p-6 shadow-sm max-w-3xl">
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* TITLE */}
-              <div>
-                <label className="text-sm font-medium text-gray-700">Title</label>
+              <Field label="Judul Voting" required>
                 <input
-                  name="title"
+                  className="input"
+                  placeholder="Contoh: Pemilihan Ketua BEM"
                   value={form.title}
-                  onChange={handleChange}
-                  required
-                  className="mt-1 w-full rounded-xl border p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                  onChange={(e) => updateForm("title", e.target.value)}
                 />
-              </div>
+              </Field>
 
-              {/* DESCRIPTION */}
-              <div>
-                <label className="text-sm font-medium text-gray-700">Description</label>
+              <Field label="Deskripsi">
                 <textarea
-                  name="description"
+                  className="textarea"
+                  placeholder="Deskripsi singkat voting"
                   value={form.description}
-                  onChange={handleChange}
-                  className="mt-1 w-full rounded-xl border p-3 shadow-sm min-h-[120px] focus:ring-2 focus:ring-blue-600 outline-none"
+                  onChange={(e) =>
+                    updateForm("description", e.target.value)
+                  }
                 />
-              </div>
+              </Field>
 
-              {/* POSTER */}
-              <div>
-                <label className="text-sm font-medium text-gray-700">Poster</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePoster}
-                  className="mt-1 text-sm"
-                />
+              <Field label="Poster Voting">
+                <div className="flex items-start gap-4">
+                  <div className="w-40 h-40 rounded-2xl border bg-slate-50 flex items-center justify-center overflow-hidden shadow-sm">
+                    {preview ? (
+                      <img
+                        src={preview}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-slate-400 text-sm">
+                        No Poster
+                      </span>
+                    )}
+                  </div>
 
-                {preview && (
-                  <img
-                    src={preview}
-                    alt="preview"
-                    className="mt-3 w-48 rounded-xl border shadow-sm"
-                  />
-                )}
-              </div>
-
-              {/* DATE GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Start Date
+                  <label className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl cursor-pointer text-sm font-semibold hover:bg-blue-100 border border-blue-100">
+                    Upload Poster
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePoster}
+                      className="hidden"
+                    />
                   </label>
+                </div>
+              </Field>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <Field label="Tanggal Mulai">
                   <input
                     type="date"
-                    name="start_date"
+                    className="input"
                     value={form.start_date}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 w-full rounded-xl border p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                    onChange={(e) =>
+                      updateForm("start_date", e.target.value)
+                    }
                   />
-                </div>
+                </Field>
 
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    End Date
-                  </label>
+                <Field label="Tanggal Selesai">
                   <input
                     type="date"
-                    name="end_date"
+                    className="input"
                     value={form.end_date}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 w-full rounded-xl border p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                    onChange={(e) =>
+                      updateForm("end_date", e.target.value)
+                    }
                   />
-                </div>
+                </Field>
               </div>
 
-              {/* STATUS */}
-              <div>
-                <label className="text-sm font-medium text-gray-700">Status</label>
+              <Field label="Status">
                 <select
-                  name="status"
+                  className="input bg-white"
                   value={form.status}
-                  onChange={handleChange}
-                  className="mt-1 w-full rounded-xl border p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                  onChange={(e) =>
+                    updateForm("status", e.target.value)
+                  }
                 >
                   <option value="draft">Draft</option>
                   <option value="active">Active</option>
                   <option value="closed">Closed</option>
                 </select>
-              </div>
+              </Field>
 
-              {/* SUBMIT BUTTON */}
               <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-3 rounded-xl text-white shadow font-medium transition ${
-                  loading
+                disabled={saving}
+                className={`w-full py-3 rounded-xl text-white font-semibold shadow transition ${
+                  saving
                     ? "bg-blue-300 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
-                {loading ? "Menyimpan..." : "Save"}
+                {saving ? "Menyimpan..." : "Buat Voting"}
               </button>
             </form>
           </main>
+
+          <div className="text-center text-xs text-slate-400">
+            © 2025 UIKA IT Division
+          </div>
         </div>
       </div>
+
+      {/* STYLES */}
+      <style>{`
+        .input {
+          width: 100%;
+          border: 1px solid #d1d5db;
+          padding: 12px;
+          border-radius: 0.9rem;
+          outline: none;
+        }
+        .input:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px #2563eb25;
+        }
+        .textarea {
+          width: 100%;
+          border: 1px solid #d1d5db;
+          padding: 12px;
+          border-radius: 0.9rem;
+          min-height: 120px;
+          outline: none;
+        }
+        .textarea:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px #2563eb25;
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getEventParticipants, getEventById } from "../services/api";
 import Swal from "sweetalert2";
@@ -19,6 +18,17 @@ const formatDateTime = (value) => {
   });
 };
 
+/* =========================
+   SKELETON
+========================= */
+function SkeletonBox({ className }) {
+  return (
+    <div
+      className={`animate-pulse rounded-3xl bg-slate-100 ${className}`}
+    />
+  );
+}
+
 export default function AdminEventParticipants() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -36,11 +46,8 @@ export default function AdminEventParticipants() {
         getEventParticipants(id),
       ]);
 
-      // EVENT
       setEvent(eventRes.data);
-
-      // 🔥 FINAL FIX: AMBIL PARTICIPANTS DARI BACKEND
-      setParticipants(partRes.data.participants || []);
+      setParticipants(partRes.data?.participants || []);
     } catch (err) {
       console.error(err);
 
@@ -48,12 +55,7 @@ export default function AdminEventParticipants() {
         icon: "error",
         title: "Gagal Memuat Data",
         text: "Terjadi kesalahan saat mengambil data peserta.",
-        showCancelButton: true,
-        confirmButtonText: "Coba Lagi",
-        cancelButtonText: "Tutup",
         confirmButtonColor: "#2563eb",
-      }).then((res) => {
-        if (res.isConfirmed) loadData();
       });
     } finally {
       setLoading(false);
@@ -68,47 +70,58 @@ export default function AdminEventParticipants() {
   const status = event?.status ?? "active";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-slate-50">
       <Sidebar />
 
-      <div className="flex-1 md:ml-64 flex flex-col">
-        <Navbar title="Peserta Event" />
+      {/* CONTENT */}
+      <div className="md:pl-64">
+        <div className="mx-auto max-w-7xl px-4 py-8 space-y-8">
 
-        <div className="px-6 py-6 max-w-6xl mx-auto w-full space-y-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
-          >
-            ← Kembali
-          </button>
+          {/* HEADER */}
+          <div>
+            <button
+              onClick={() => navigate(-1)}
+              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
+            >
+              ← Kembali
+            </button>
 
+            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
+              Event Participants
+            </p>
+            <h1 className="mt-2 text-2xl font-extrabold text-slate-900">
+              Peserta Event
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Daftar mahasiswa yang mendaftar pada event ini.
+            </p>
+          </div>
+
+          {/* EVENT INFO */}
           {loading ? (
-            <div className="animate-pulse space-y-3">
-              <div className="h-6 w-64 bg-gray-200 rounded" />
-              <div className="h-20 bg-gray-200 rounded-2xl" />
-            </div>
+            <SkeletonBox className="h-32" />
           ) : (
-            <div className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <p className="text-[11px] uppercase tracking-widest text-blue-600 font-semibold">
-                  Event
-                </p>
-                <h2 className="text-xl font-bold text-gray-900 mt-1">
+                <h2 className="text-lg font-bold text-slate-900">
                   {event?.title}
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  {event?.date} · {event?.location}
+                <p className="mt-1 text-sm text-slate-600">
+                  {event?.date} · {event?.location || "Lokasi belum ditentukan"}
                 </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  Total Peserta: <b>{total}</b>
+                <p className="mt-2 text-xs text-slate-500">
+                  Total Peserta:{" "}
+                  <span className="font-semibold text-slate-700">
+                    {total}
+                  </span>
                 </p>
               </div>
 
               <span
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold border ${
+                className={`self-start sm:self-center rounded-full px-4 py-1.5 text-xs font-bold border ${
                   status === "active"
-                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                    : "bg-red-100 text-red-700 border-red-200"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-red-50 text-red-700 border-red-200"
                 }`}
               >
                 {status.toUpperCase()}
@@ -116,37 +129,46 @@ export default function AdminEventParticipants() {
             </div>
           )}
 
+          {/* TABLE */}
           {loading ? (
-            <div className="animate-pulse h-40 bg-gray-200 rounded-2xl" />
+            <SkeletonBox className="h-48" />
           ) : total === 0 ? (
-            <div className="bg-white border border-dashed rounded-2xl py-10 text-center text-sm text-gray-500">
+            <div className="rounded-3xl border border-dashed bg-white py-16 text-center text-sm text-slate-500">
               Belum ada peserta yang mendaftar.
             </div>
           ) : (
-            <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="py-3 px-5 text-left">Nama</th>
-                    <th className="py-3 px-5 text-left">Email</th>
-                    <th className="py-3 px-5 text-left">Tanggal Daftar</th>
+                    <th className="py-4 px-6 text-left font-semibold">
+                      Nama
+                    </th>
+                    <th className="py-4 px-6 text-left font-semibold">
+                      Email
+                    </th>
+                    <th className="py-4 px-6 text-left font-semibold">
+                      Tanggal Daftar
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {participants.map((p, idx) => (
                     <tr
                       key={p.id}
-                      className={`border-t hover:bg-gray-50 transition ${
-                        idx % 2 === 0 ? "bg-white" : "bg-gray-50/40"
-                      }`}
+                      className={`border-t transition ${
+                        idx % 2 === 0
+                          ? "bg-white"
+                          : "bg-slate-50/60"
+                      } hover:bg-slate-100`}
                     >
-                      <td className="py-3 px-5 font-medium text-gray-900">
+                      <td className="py-4 px-6 font-medium text-slate-900">
                         {p.user?.name}
                       </td>
-                      <td className="py-3 px-5 text-gray-600">
+                      <td className="py-4 px-6 text-slate-600">
                         {p.user?.email}
                       </td>
-                      <td className="py-3 px-5 text-gray-600">
+                      <td className="py-4 px-6 text-slate-600">
                         {formatDateTime(p.created_at)}
                       </td>
                     </tr>
@@ -155,11 +177,12 @@ export default function AdminEventParticipants() {
               </table>
             </div>
           )}
-        </div>
 
-        <footer className="text-center text-xs text-gray-400 py-6">
-          © UIKA IT Division
-        </footer>
+          {/* FOOTER */}
+          <div className="text-center text-xs text-slate-400 pt-8">
+            © 2025 UIKA IT Division
+          </div>
+        </div>
       </div>
     </div>
   );

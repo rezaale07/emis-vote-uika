@@ -1,46 +1,67 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { createVoting } from "../services/api";
 import Swal from "sweetalert2";
 
 /* =========================
-   SUBMIT BUTTON
+   UI ATOMS
 ========================= */
-function SubmitButton({ loading, text }) {
+function Field({ label, hint, required, children }) {
   return (
-    <button
-      disabled={loading}
-      className={`w-full py-3 rounded-xl text-white text-sm font-medium shadow transition ${
-        loading
-          ? "bg-blue-300 cursor-not-allowed"
-          : "bg-blue-600 hover:bg-blue-700"
-      }`}
-    >
-      {loading ? (
-        <span className="flex items-center justify-center gap-2">
-          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          Menyimpan...
-        </span>
-      ) : (
-        text
-      )}
-    </button>
+    <div className="space-y-2">
+      <div className="flex items-end justify-between">
+        <label className="text-sm font-semibold text-slate-800">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        {hint && <span className="text-[11px] text-slate-500">{hint}</span>}
+      </div>
+      {children}
+    </div>
   );
 }
 
-/* =========================
-   INPUT WRAPPER
-========================= */
-function Input({ label, children }) {
+function Input(props) {
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      {children}
-    </div>
+    <input
+      {...props}
+      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition
+      focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+    />
+  );
+}
+
+function Textarea(props) {
+  return (
+    <textarea
+      {...props}
+      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none min-h-[120px] transition
+      focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+    />
+  );
+}
+
+function PrimaryButton({ loading, children }) {
+  return (
+    <button
+      disabled={loading}
+      type="submit"
+      className={[
+        "w-full rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-sm transition",
+        loading
+          ? "bg-blue-300 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700 active:translate-y-[1px]",
+      ].join(" ")}
+    >
+      {loading ? (
+        <span className="inline-flex items-center justify-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          Menyimpan...
+        </span>
+      ) : (
+        children
+      )}
+    </button>
   );
 }
 
@@ -61,34 +82,12 @@ export default function AddVoting() {
 
   useEffect(() => {
     return () => {
-      if (preview) URL.revokeObjectURL(preview);
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
   const updateForm = (key, value) =>
     setForm((prev) => ({ ...prev, [key]: value }));
-
-  /* =========================
-     POSTER CHANGE
-  ========================= */
-  const handlePosterChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 4 * 1024 * 1024) {
-      Swal.fire("Peringatan", "Poster maksimal 4MB", "warning");
-      return;
-    }
-
-    const allowed = ["image/jpeg", "image/png", "image/jpg"];
-    if (!allowed.includes(file.type)) {
-      Swal.fire("Error", "Poster harus JPG atau PNG", "error");
-      return;
-    }
-
-    setPoster(file);
-    setPreview(URL.createObjectURL(file));
-  };
 
   /* =========================
      SUBMIT
@@ -97,45 +96,51 @@ export default function AddVoting() {
     e.preventDefault();
 
     if (!form.title.trim()) {
-      Swal.fire("Validasi", "Judul voting wajib diisi", "warning");
-      return;
+      return Swal.fire("Validasi", "Judul voting wajib diisi", "warning");
     }
 
-    if (
-      form.start_date &&
-      form.end_date &&
-      form.start_date > form.end_date
-    ) {
-      Swal.fire(
-        "Tanggal Tidak Valid",
+    if (form.start_date && form.end_date && form.start_date > form.end_date) {
+      return Swal.fire(
+        "Tanggal tidak valid",
         "Tanggal selesai tidak boleh sebelum tanggal mulai",
         "error"
       );
-      return;
     }
+
+    const confirm = await Swal.fire({
+      title: "Buat Voting?",
+      text: "Pastikan data voting sudah benar.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Simpan",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#2563eb",
+    });
+
+    if (!confirm.isConfirmed) return;
 
     setSaving(true);
 
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-    if (poster) fd.append("poster", poster);
-
     try {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      if (poster) fd.append("poster", poster);
+
       await createVoting(fd);
 
       Swal.fire({
         icon: "success",
         title: "Berhasil!",
         text: "Voting berhasil dibuat",
-        timer: 1400,
+        timer: 1200,
         showConfirmButton: false,
       });
 
-      setTimeout(() => navigate("/admin/voting"), 1200);
+      setTimeout(() => navigate("/admin/voting"), 800);
     } catch (err) {
       Swal.fire(
         "Gagal",
-        err.response?.data?.message || "Terjadi kesalahan",
+        err?.response?.data?.message || "Terjadi kesalahan",
         "error"
       );
     } finally {
@@ -144,154 +149,134 @@ export default function AddVoting() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 fade-in">
-      <Navbar title="Add Voting" />
+    <div className="min-h-screen bg-slate-50">
+      <Sidebar />
 
-      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
-
-        <main className="rounded-2xl border bg-white p-6 shadow-sm max-w-3xl">
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-6 rounded-xl border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
-          >
-            ← Kembali
-          </button>
-
+      {/* CONTENT */}
+      <div className="md:pl-64 pt-[56px] md:pt-0">
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          {/* HEADER */}
           <div className="mb-6">
-            <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
-              Voting
+            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
+              Admin • Voting
             </p>
-            <h2 className="mt-2 text-2xl font-bold text-gray-900">
-              Buat Voting Baru
-            </h2>
+
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-extrabold text-slate-900">
+                  Buat Voting Baru
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Buat voting baru untuk proses pemilihan kampus.
+                </p>
+              </div>
+
+              <button
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+              >
+                ← Kembali
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 fade-up">
-            <Input label="Judul Voting">
-              <input
-                className="input"
-                placeholder="Contoh: Pemilihan Ketua BEM"
-                value={form.title}
-                onChange={(e) => updateForm("title", e.target.value)}
-                required
-              />
-            </Input>
+          {/* FORM CARD */}
+          <div className="max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <Field label="Judul Voting" required>
+                <Input
+                  placeholder="Contoh: Pemilihan Ketua BEM"
+                  value={form.title}
+                  onChange={(e) => updateForm("title", e.target.value)}
+                />
+              </Field>
 
-            <Input label="Deskripsi">
-              <textarea
-                className="textarea"
-                placeholder="Deskripsi singkat voting"
-                value={form.description}
-                onChange={(e) =>
-                  updateForm("description", e.target.value)
-                }
-              />
-            </Input>
+              <Field label="Deskripsi" hint="Opsional">
+                <Textarea
+                  placeholder="Deskripsi singkat voting"
+                  value={form.description}
+                  onChange={(e) =>
+                    updateForm("description", e.target.value)
+                  }
+                />
+              </Field>
 
-            <Input label="Poster Voting">
-              <div className="flex items-start gap-4">
-                <div className="w-40 h-40 rounded-xl border bg-gray-50 flex items-center justify-center overflow-hidden shadow-sm">
-                  {preview ? (
-                    <img
-                      src={preview}
-                      className="w-full h-full object-cover"
+              <Field label="Poster Voting" hint="JPG / PNG (opsional)">
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-40 h-40 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                    {preview ? (
+                      <img
+                        src={preview}
+                        alt="Poster"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm text-slate-400">
+                        No Poster
+                      </span>
+                    )}
+                  </div>
+
+                  <label className="cursor-pointer rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
+                    Upload Poster
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        setPoster(f);
+                        setPreview(URL.createObjectURL(f));
+                      }}
                     />
-                  ) : (
-                    <span className="text-gray-400 text-sm">
-                      No Poster
-                    </span>
-                  )}
+                  </label>
                 </div>
+              </Field>
 
-                <label className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl cursor-pointer text-sm font-medium hover:bg-blue-100 border">
-                  Upload Poster
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePosterChange}
-                    className="hidden"
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Tanggal Mulai">
+                  <Input
+                    type="date"
+                    value={form.start_date}
+                    onChange={(e) =>
+                      updateForm("start_date", e.target.value)
+                    }
                   />
-                </label>
+                </Field>
+
+                <Field label="Tanggal Selesai">
+                  <Input
+                    type="date"
+                    value={form.end_date}
+                    onChange={(e) =>
+                      updateForm("end_date", e.target.value)
+                    }
+                  />
+                </Field>
               </div>
-            </Input>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Tanggal Mulai">
-                <input
-                  type="date"
-                  className="input"
-                  value={form.start_date}
+              <Field label="Status">
+                <select
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  value={form.status}
                   onChange={(e) =>
-                    updateForm("start_date", e.target.value)
+                    updateForm("status", e.target.value)
                   }
-                />
-              </Input>
+                >
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </Field>
 
-              <Input label="Tanggal Selesai">
-                <input
-                  type="date"
-                  className="input"
-                  value={form.end_date}
-                  onChange={(e) =>
-                    updateForm("end_date", e.target.value)
-                  }
-                />
-              </Input>
-            </div>
-
-            <Input label="Status">
-              <select
-                className="input bg-white"
-                value={form.status}
-                onChange={(e) =>
-                  updateForm("status", e.target.value)
-                }
-              >
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="closed">Closed</option>
-              </select>
-            </Input>
-
-            <SubmitButton loading={saving} text="Buat Voting" />
-          </form>
-        </main>
+              <PrimaryButton loading={saving}>
+                Buat Voting
+              </PrimaryButton>
+            </form>
+          </div>
+        </div>
       </div>
-
-      <style>{`
-        .fade-in { animation: fadeIn .25s ease-out; }
-        .fade-up { animation: fadeUp .25s ease-out; }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .input {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          padding: 12px;
-          border-radius: 0.75rem;
-          box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-          outline: none;
-        }
-        .input:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 2px #2563eb40;
-        }
-        .textarea {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          padding: 12px;
-          border-radius: 0.75rem;
-          min-height: 120px;
-        }
-      `}</style>
     </div>
   );
 }

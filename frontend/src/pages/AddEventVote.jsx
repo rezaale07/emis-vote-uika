@@ -1,9 +1,73 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
 import Swal from "sweetalert2";
+
+/* =========================
+   UI ATOMS
+========================= */
+function Field({ label, hint, required, children }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end justify-between">
+        <label className="text-sm font-semibold text-slate-800">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        {hint && <span className="text-[11px] text-slate-500">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Input(props) {
+  return (
+    <input
+      {...props}
+      className={[
+        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none",
+        "focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition",
+      ].join(" ")}
+    />
+  );
+}
+
+function Textarea(props) {
+  return (
+    <textarea
+      {...props}
+      className={[
+        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none",
+        "focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition min-h-[120px]",
+      ].join(" ")}
+    />
+  );
+}
+
+function PrimaryButton({ loading, children }) {
+  return (
+    <button
+      disabled={loading}
+      type="submit"
+      className={[
+        "w-full rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-sm transition",
+        loading
+          ? "bg-blue-300 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700 active:translate-y-[1px]",
+      ].join(" ")}
+    >
+      {loading ? (
+        <span className="inline-flex items-center justify-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          Menyimpan...
+        </span>
+      ) : (
+        children
+      )}
+    </button>
+  );
+}
 
 export default function AddEventVote() {
   const { id } = useParams();
@@ -13,162 +77,175 @@ export default function AddEventVote() {
   const [description, setDescription] = useState("");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // =========================
-  // SUBMIT
-  // =========================
+  useEffect(() => {
+    return () => {
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
+  /* =========================
+     SUBMIT
+  ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!name.trim()) {
-      Swal.fire("Validasi", "Nama event wajib diisi", "warning");
-      return;
+      return Swal.fire("Validasi", "Nama event wajib diisi", "warning");
     }
 
-    setSubmitting(true);
+    const confirm = await Swal.fire({
+      title: "Tambah Event Voting?",
+      text: "Pastikan data sudah benar.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Simpan",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#2563eb",
+    });
 
-    const fd = new FormData();
-    fd.append("name", name);
-    fd.append("bio", description);
-    if (file) fd.append("photo", file);
+    if (!confirm.isConfirmed) return;
+
+    setSaving(true);
 
     try {
+      const fd = new FormData();
+      fd.append("name", name.trim());
+      fd.append("bio", description || "");
+      if (file) fd.append("photo", file);
+
       await api.post(`/votings/${id}/options`, fd);
 
       Swal.fire({
         icon: "success",
-        title: "Berhasil",
+        title: "Berhasil!",
         text: "Event voting berhasil ditambahkan",
-        timer: 1300,
+        timer: 1200,
         showConfirmButton: false,
       });
 
-      navigate(`/admin/voting/${id}/event-vote`);
+      setTimeout(
+        () => navigate(`/admin/voting/${id}/event-vote`),
+        700
+      );
     } catch (err) {
       Swal.fire(
         "Gagal",
-        err.response?.data?.message || "Terjadi kesalahan",
+        err?.response?.data?.message || "Terjadi kesalahan",
         "error"
       );
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 fade-in">
-      <Navbar title="Tambah Event Voting" />
+    <div className="min-h-screen bg-slate-50">
+      <Sidebar />
 
-      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
-        {/* SIDEBAR */}
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
-
-        {/* MAIN */}
-        <main className="rounded-2xl border bg-white p-6 shadow-sm max-w-3xl">
-          {/* BACK */}
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-6 rounded-xl border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 transition"
-          >
-            ← Kembali
-          </button>
-
+      {/* CONTENT */}
+      <div className="md:pl-64 pt-[56px] md:pt-0">
+        <div className="mx-auto max-w-6xl px-4 py-8">
           {/* HEADER */}
           <div className="mb-6">
-            <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
-              Event Voting
+            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
+              Admin • Voting
             </p>
-            <h2 className="mt-2 text-2xl font-bold text-gray-900">
-              Tambah Event Baru
-            </h2>
+
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-extrabold text-slate-900">
+                  Tambah Event Voting
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Tambahkan kandidat / event voting ke dalam sistem.
+                </p>
+              </div>
+
+              <button
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+              >
+                ← Kembali
+              </button>
+            </div>
           </div>
 
-          {/* FORM */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* NAME */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Event
-              </label>
-              <input
-                className="w-full border rounded-xl p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none"
-                placeholder="Contoh: Seminar AI Nasional"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* DESCRIPTION */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Deskripsi Event
-              </label>
-              <textarea
-                className="w-full border rounded-xl p-3 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none min-h-[120px]"
-                placeholder="Deskripsi singkat mengenai event"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-
-            {/* PREVIEW */}
-            {preview && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Preview Poster
-                </label>
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="w-32 h-32 rounded-xl object-cover border shadow-sm"
+          {/* CARD */}
+          <div className="max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <Field label="Nama Event / Kandidat" required>
+                <Input
+                  placeholder="Contoh: Kandidat Ketua BEM"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
                 />
-              </div>
-            )}
+              </Field>
 
-            {/* FILE */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Poster Event
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                className="text-sm"
-                onChange={(e) => {
-                  const f = e.target.files[0];
-                  if (!f) return;
-                  setFile(f);
-                  setPreview(URL.createObjectURL(f));
-                }}
-              />
-            </div>
+              <Field label="Deskripsi" hint="Opsional">
+                <Textarea
+                  placeholder="Deskripsi singkat mengenai event / kandidat"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </Field>
 
-            {/* SUBMIT */}
-            <button
-              disabled={submitting}
-              className={`w-full py-3 rounded-xl text-white text-sm font-medium shadow transition ${
-                submitting
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {submitting ? "Menyimpan..." : "Simpan Event"}
-            </button>
-          </form>
-        </main>
+              <Field label="Poster / Foto" hint="Opsional (JPG / PNG)">
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-40 h-40 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                    {preview ? (
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm text-slate-400">No Image</span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <label className="cursor-pointer rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
+                      Upload Gambar
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          setFile(f);
+                          setPreview(URL.createObjectURL(f));
+                        }}
+                      />
+                    </label>
+
+                    {preview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          URL.revokeObjectURL(preview);
+                          setPreview(null);
+                          setFile(null);
+                        }}
+                        className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Field>
+
+              <PrimaryButton loading={saving}>
+                Simpan Event Voting
+              </PrimaryButton>
+            </form>
+          </div>
+        </div>
       </div>
-
-      <style>{`
-        .fade-in { animation: fadeIn .25s ease-out; }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }

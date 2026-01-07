@@ -1,20 +1,23 @@
-// layouts/AdminLayout.jsx
-import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+import { useState } from "react";
+import AdminSidebar from "../components/AdminSidebar";
+import AdminNavbar from "../components/AdminNavbar";
 
 export default function AdminLayout({ title, children }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-slate-50 md:pl-64">
-      {/* Sidebar tetap fixed */}
-      <Sidebar />
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* SIDEBAR */}
+      <AdminSidebar open={open} onClose={() => setOpen(false)} />
 
-      {/* Navbar */}
-      <Navbar title={title} />
+      {/* MAIN */}
+      <div className="flex-1 md:ml-64 flex flex-col">
+        <AdminNavbar title={title} onMenu={() => setOpen(true)} />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {children}
-      </main>
+        <main className="p-4 sm:p-6 max-w-7xl w-full mx-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

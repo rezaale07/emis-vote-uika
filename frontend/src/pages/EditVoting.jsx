@@ -1,60 +1,24 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api, { updateVoting } from "../services/api";
 import Swal from "sweetalert2";
 
 /* =========================
-   SKELETON FORM
+   SKELETON
 ========================= */
 function FormSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-4 w-1/3 bg-gray-200 rounded" />
-      <div className="h-10 bg-gray-200 rounded-xl" />
-      <div className="h-28 bg-gray-200 rounded-xl" />
-      <div className="h-40 bg-gray-200 rounded-xl" />
-      <div className="h-10 bg-gray-200 rounded-xl" />
-    </div>
-  );
-}
+    <div className="max-w-3xl rounded-3xl border bg-white p-6 shadow-sm animate-pulse">
+      <div className="h-4 w-32 bg-slate-200 rounded mb-3" />
+      <div className="h-8 w-48 bg-slate-200 rounded mb-6" />
 
-/* =========================
-   SUBMIT BUTTON
-========================= */
-function SubmitButton({ loading, text }) {
-  return (
-    <button
-      disabled={loading}
-      className={`w-full py-3 rounded-xl text-white text-sm font-medium shadow transition ${
-        loading
-          ? "bg-blue-300 cursor-not-allowed"
-          : "bg-blue-600 hover:bg-blue-700"
-      }`}
-    >
-      {loading ? (
-        <span className="flex items-center justify-center gap-2">
-          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          Menyimpan...
-        </span>
-      ) : (
-        text
-      )}
-    </button>
-  );
-}
-
-/* =========================
-   INPUT WRAPPER
-========================= */
-function Input({ label, children }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      {children}
+      <div className="space-y-6">
+        <div className="h-11 bg-slate-200 rounded-xl" />
+        <div className="h-28 bg-slate-200 rounded-xl" />
+        <div className="h-36 bg-slate-200 rounded-xl" />
+        <div className="h-11 bg-slate-200 rounded-xl" />
+      </div>
     </div>
   );
 }
@@ -109,7 +73,7 @@ export default function EditVoting() {
 
     return () => {
       mounted = false;
-      if (preview) URL.revokeObjectURL(preview);
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     };
   }, [id]);
 
@@ -117,10 +81,10 @@ export default function EditVoting() {
     setForm((prev) => ({ ...prev, [key]: value }));
 
   /* =========================
-     POSTER CHANGE
+     POSTER
   ========================= */
   const handlePosterChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 4 * 1024 * 1024) {
@@ -140,10 +104,12 @@ export default function EditVoting() {
 
     const confirm = await Swal.fire({
       title: "Simpan Perubahan?",
+      text: "Perubahan akan diterapkan ke voting ini.",
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Simpan",
       cancelButtonText: "Batal",
+      confirmButtonColor: "#2563eb",
     });
 
     if (!confirm.isConfirmed) return;
@@ -156,9 +122,16 @@ export default function EditVoting() {
 
     try {
       await updateVoting(id, fd);
-      Swal.fire("Berhasil", "Voting berhasil diperbarui", "success").then(() =>
-        navigate("/admin/voting")
-      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "Voting berhasil diperbarui",
+        timer: 1400,
+        showConfirmButton: false,
+      });
+
+      navigate("/admin/voting");
     } catch {
       Swal.fire("Gagal", "Gagal memperbarui voting", "error");
     } finally {
@@ -166,157 +139,192 @@ export default function EditVoting() {
     }
   };
 
-  /* =========================
-     RENDER
-  ========================= */
   return (
-    <div className="min-h-screen bg-gray-50 fade-in">
-      <Navbar title="Edit Voting" />
+    <div className="min-h-screen bg-slate-50">
+      <Sidebar />
 
-      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
+      <div className="md:pl-64">
+        <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
 
-        <main className="rounded-2xl border bg-white p-6 shadow-sm max-w-3xl">
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-6 rounded-xl border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
-          >
-            ← Kembali
-          </button>
+          {/* HEADER */}
+          <div>
+            <button
+              onClick={() => navigate(-1)}
+              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
+            >
+              ← Kembali
+            </button>
 
-          <div className="mb-6">
-            <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
+            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
               Voting
             </p>
-            <h2 className="mt-2 text-2xl font-bold text-gray-900">
+            <h1 className="mt-2 text-2xl font-extrabold text-slate-900">
               Edit Voting
-            </h2>
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Perbarui detail voting, poster, dan status.
+            </p>
           </div>
 
+          {/* FORM */}
           {loading ? (
             <FormSkeleton />
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6 fade-up">
-              <Input label="Judul Voting">
-                <input
-                  className="input"
-                  value={form.title}
-                  onChange={(e) => updateForm("title", e.target.value)}
-                  required
-                />
-              </Input>
+            <main className="max-w-3xl rounded-3xl border bg-white p-6 shadow-sm">
+              <form onSubmit={handleSubmit} className="space-y-6">
 
-              <Input label="Deskripsi">
-                <textarea
-                  className="textarea"
-                  value={form.description}
-                  onChange={(e) => updateForm("description", e.target.value)}
-                />
-              </Input>
+                {/* TITLE */}
+                <div>
+                  <label className="text-sm font-semibold text-slate-700">
+                    Judul Voting <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    className="input"
+                    value={form.title}
+                    onChange={(e) => updateForm("title", e.target.value)}
+                    required
+                  />
+                </div>
 
-              <Input label="Poster Voting">
-                <div className="flex items-start gap-4">
-                  <div className="w-40 h-40 rounded-xl border bg-gray-50 flex items-center justify-center overflow-hidden shadow-sm">
-                    {preview ? (
-                      <img
-                        src={preview}
-                        className="w-full h-full object-cover"
+                {/* DESCRIPTION */}
+                <div>
+                  <label className="text-sm font-semibold text-slate-700">
+                    Deskripsi
+                  </label>
+                  <textarea
+                    className="textarea"
+                    value={form.description}
+                    onChange={(e) =>
+                      updateForm("description", e.target.value)
+                    }
+                  />
+                </div>
+
+                {/* POSTER */}
+                <div>
+                  <label className="text-sm font-semibold text-slate-700">
+                    Poster Voting
+                  </label>
+
+                  <div className="mt-3 flex items-start gap-4">
+                    <div className="w-36 h-36 rounded-2xl border bg-slate-50 flex items-center justify-center overflow-hidden">
+                      {preview ? (
+                        <img
+                          src={preview}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-slate-400 text-sm">
+                          No Poster
+                        </span>
+                      )}
+                    </div>
+
+                    <label className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl cursor-pointer font-semibold text-sm hover:bg-blue-100 border">
+                      Ganti Poster
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePosterChange}
+                        className="hidden"
                       />
-                    ) : (
-                      <span className="text-gray-400 text-sm">No Poster</span>
-                    )}
+                    </label>
+                  </div>
+                </div>
+
+                {/* DATE */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Tanggal Mulai
+                    </label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={form.start_date}
+                      onChange={(e) =>
+                        updateForm("start_date", e.target.value)
+                      }
+                    />
                   </div>
 
-                  <label className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl cursor-pointer text-sm font-medium hover:bg-blue-100 border">
-                    Upload Poster
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Tanggal Selesai
+                    </label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePosterChange}
-                      className="hidden"
+                      type="date"
+                      className="input"
+                      value={form.end_date}
+                      onChange={(e) =>
+                        updateForm("end_date", e.target.value)
+                      }
                     />
-                  </label>
+                  </div>
                 </div>
-              </Input>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <Input label="Start Date">
-                  <input
-                    type="date"
-                    className="input"
-                    value={form.start_date}
+                {/* STATUS */}
+                <div>
+                  <label className="text-sm font-semibold text-slate-700">
+                    Status
+                  </label>
+                  <select
+                    className="input bg-white"
+                    value={form.status}
                     onChange={(e) =>
-                      updateForm("start_date", e.target.value)
+                      updateForm("status", e.target.value)
                     }
-                  />
-                </Input>
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
 
-                <Input label="End Date">
-                  <input
-                    type="date"
-                    className="input"
-                    value={form.end_date}
-                    onChange={(e) =>
-                      updateForm("end_date", e.target.value)
-                    }
-                  />
-                </Input>
-              </div>
-
-              <Input label="Status">
-                <select
-                  className="input bg-white"
-                  value={form.status}
-                  onChange={(e) =>
-                    updateForm("status", e.target.value)
-                  }
+                {/* SUBMIT */}
+                <button
+                  disabled={saving}
+                  className={`w-full py-3 rounded-xl text-white font-semibold shadow transition ${
+                    saving
+                      ? "bg-blue-300 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
                 >
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </Input>
-
-              <SubmitButton
-                loading={saving}
-                text="Simpan Perubahan"
-              />
-            </form>
+                  {saving ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </form>
+            </main>
           )}
-        </main>
+
+          <div className="text-center text-xs text-slate-400">
+            © 2025 UIKA IT Division
+          </div>
+        </div>
       </div>
 
       <style>{`
-        .fade-in { animation: fadeIn .25s ease-out; }
-        .fade-up { animation: fadeUp .25s ease-out; }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
         .input {
           width: 100%;
           border: 1px solid #d1d5db;
           padding: 12px;
-          border-radius: 0.75rem;
-          box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+          border-radius: 0.9rem;
           outline: none;
         }
         .input:focus {
           border-color: #2563eb;
-          box-shadow: 0 0 0 2px #2563eb40;
+          box-shadow: 0 0 0 3px #2563eb25;
         }
         .textarea {
           width: 100%;
           border: 1px solid #d1d5db;
           padding: 12px;
-          border-radius: 0.75rem;
+          border-radius: 0.9rem;
           min-height: 120px;
+          outline: none;
+        }
+        .textarea:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px #2563eb25;
         }
       `}</style>
     </div>

@@ -1,33 +1,31 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
 import Swal from "sweetalert2";
 
-// ===============================
-// Skeleton Card
-// ===============================
-function SkeletonCard() {
+/* ===============================
+   UI COMPONENTS
+=============================== */
+function SkeletonBox({ className }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm animate-pulse">
-      <div className="h-4 w-24 bg-gray-200 rounded-md" />
-      <div className="mt-3 h-8 w-16 bg-gray-300 rounded-md" />
-    </div>
+    <div
+      className={`animate-pulse rounded-3xl bg-slate-100 ${className}`}
+    />
   );
 }
 
 function StatCard({ label, value, icon }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 shadow hover:shadow-md transition-all">
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{label}</p>
+        <p className="text-sm font-medium text-slate-500">{label}</p>
         <span className="text-2xl">{icon}</span>
       </div>
 
-      <div className="mt-1 text-3xl font-bold text-gray-800">
+      <p className="mt-2 text-3xl font-extrabold text-slate-900">
         {value ?? 0}
-      </div>
+      </p>
     </div>
   );
 }
@@ -91,23 +89,13 @@ export default function AdminDashboard() {
       setVotings(enriched);
       setTotalVotesAll(totalAll);
     } catch (err) {
-      console.error("Dashboard load error:", err);
+      console.error(err);
 
-      // ===============================
-      // ⚠️ SWEETALERT - ERROR + RETRY
-      // ===============================
       Swal.fire({
         icon: "error",
         title: "Gagal Memuat Dashboard",
-        text: "Terjadi kesalahan saat mengambil data. Coba lagi?",
-        showCancelButton: true,
-        confirmButtonText: "Coba Lagi",
-        cancelButtonText: "Batal",
+        text: "Terjadi kesalahan saat mengambil data.",
         confirmButtonColor: "#2563eb",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          loadDashboard();
-        }
       });
 
       setEventsCount(0);
@@ -124,67 +112,88 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex overflow-hidden">
-      {/* SIDEBAR */}
+    <div className="min-h-screen bg-slate-50">
       <Sidebar />
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 md:ml-64 flex flex-col">
-        <Navbar title="Admin Dashboard" />
+      {/* CONTENT */}
+      <div className="md:pl-64">
+        <div className="mx-auto max-w-7xl px-4 py-8 space-y-8">
 
-        <div className="px-4 sm:px-6 lg:px-8 py-6 w-full max-w-7xl mx-auto space-y-6">
+          {/* HEADER */}
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
+              Admin Dashboard
+            </p>
+            <h1 className="mt-2 text-2xl font-extrabold text-slate-900">
+              Ringkasan Sistem
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Pantau statistik event, mahasiswa, dan voting kampus.
+            </p>
+          </div>
 
-          {/* TITLE */}
-          <h2 className="text-xl font-semibold text-gray-900">Statistik Sistem</h2>
-
-          {/* STAT CARDS */}
+          {/* STATISTICS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {loading ? (
               <>
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
+                <SkeletonBox className="h-28" />
+                <SkeletonBox className="h-28" />
+                <SkeletonBox className="h-28" />
               </>
             ) : (
               <>
-                <StatCard label="Total Events" value={eventsCount} icon="📅" />
-                <StatCard label="Total Mahasiswa" value={studentsCount} icon="🎓" />
-                <StatCard label="Total Votes Masuk" value={totalVotesAll} icon="🗳️" />
+                <StatCard
+                  label="Total Event"
+                  value={eventsCount}
+                  icon="📅"
+                />
+                <StatCard
+                  label="Total Mahasiswa"
+                  value={studentsCount}
+                  icon="🎓"
+                />
+                <StatCard
+                  label="Total Suara Masuk"
+                  value={totalVotesAll}
+                  icon="🗳️"
+                />
               </>
             )}
           </div>
 
-          {/* LIST VOTING */}
-          <div className="rounded-2xl border bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-gray-800">Daftar Voting</h3>
-                <p className="text-sm text-gray-500">
-                  Klik tombol "Lihat Hasil" untuk melihat rincian suara.
-                </p>
-              </div>
+          {/* VOTING LIST */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold text-slate-900">
+                Daftar Voting
+              </h2>
+              <p className="text-sm text-slate-500">
+                Klik voting untuk melihat hasil suara.
+              </p>
             </div>
 
             {loading ? (
-              <div className="space-y-3 animate-pulse mt-4">
-                <div className="h-20 rounded-2xl bg-gray-100" />
-                <div className="h-20 rounded-2xl bg-gray-100" />
+              <div className="space-y-3">
+                <SkeletonBox className="h-20" />
+                <SkeletonBox className="h-20" />
               </div>
             ) : votings.length === 0 ? (
-              <div className="mt-4 text-sm text-gray-500">Belum ada data voting.</div>
+              <p className="text-sm text-slate-500">
+                Belum ada data voting.
+              </p>
             ) : (
-              <div className="space-y-3 mt-4">
+              <div className="space-y-3">
                 {votings.map((v) => (
                   <div
                     key={v.id}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:shadow-sm transition-all"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:bg-slate-100 transition"
                   >
                     <div className="flex items-center gap-4">
                       {v.poster_url ? (
                         <img
                           src={v.poster_url}
                           alt={v.title}
-                          className="w-16 h-16 rounded-xl object-cover shadow-sm border"
+                          className="w-16 h-16 rounded-xl object-cover border shadow-sm"
                         />
                       ) : (
                         <div className="w-16 h-16 rounded-xl bg-slate-200 flex items-center justify-center text-xs text-slate-500">
@@ -194,11 +203,11 @@ export default function AdminDashboard() {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-slate-900 text-sm md:text-base">
+                          <h3 className="font-semibold text-slate-900">
                             {v.title}
-                          </h4>
+                          </h3>
                           <span
-                            className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                            className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
                               v.status === "active"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : "bg-slate-100 text-slate-500 border border-slate-200"
@@ -209,21 +218,25 @@ export default function AdminDashboard() {
                         </div>
 
                         {v.description && (
-                          <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                          <p className="text-xs text-slate-500 line-clamp-1">
                             {v.description}
                           </p>
                         )}
 
                         <p className="text-xs text-slate-600 mt-1">
                           Total Suara:{" "}
-                          <span className="font-semibold">{v.total_votes}</span>
+                          <span className="font-semibold">
+                            {v.total_votes}
+                          </span>
                         </p>
                       </div>
                     </div>
 
                     <button
-                      onClick={() => navigate(`/admin/results/${v.id}`)}
-                      className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 shadow-sm"
+                      onClick={() =>
+                        navigate(`/admin/results/${v.id}`)
+                      }
+                      className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition"
                     >
                       Lihat Hasil →
                     </button>

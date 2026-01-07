@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import Swal from "sweetalert2";
 
@@ -29,41 +28,68 @@ const isExpiredDateTime = (date, time) => {
 };
 
 /* =========================
-   UI PARTS
+   UI ATOMS
 ========================= */
-function SubmitButton({ loading, text }) {
+function Field({ label, hint, required, children }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end justify-between gap-2">
+        <label className="text-sm font-semibold text-slate-800">
+          {label} {required ? <span className="text-red-500">*</span> : null}
+        </label>
+        {hint ? <span className="text-[11px] text-slate-500">{hint}</span> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Input(props) {
+  return (
+    <input
+      {...props}
+      className={[
+        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none",
+        "focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function Textarea(props) {
+  return (
+    <textarea
+      {...props}
+      className={[
+        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none",
+        "focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition",
+        "min-h-[120px]",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function PrimaryButton({ loading, children }) {
   return (
     <button
       disabled={loading}
       type="submit"
       className={[
-        "w-full py-3 rounded-xl text-white text-sm font-semibold shadow-sm transition",
-        loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700",
+        "w-full rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-sm transition",
+        loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 active:translate-y-[1px]",
       ].join(" ")}
     >
       {loading ? (
-        <span className="flex items-center justify-center gap-2">
-          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <span className="inline-flex items-center justify-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           Menyimpan...
         </span>
       ) : (
-        text
+        children
       )}
     </button>
-  );
-}
-
-function Field({ label, hint, required, children }) {
-  return (
-    <div>
-      <div className="flex items-end justify-between gap-2">
-        <label className="block text-sm font-semibold text-gray-800">
-          {label} {required ? <span className="text-red-500">*</span> : null}
-        </label>
-        {hint ? <span className="text-[11px] text-gray-500">{hint}</span> : null}
-      </div>
-      <div className="mt-2">{children}</div>
-    </div>
   );
 }
 
@@ -132,7 +158,6 @@ export default function AddEvent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validasi basic
     if (!form.title.trim()) {
       return Swal.fire("Wajib diisi", "Judul event tidak boleh kosong.", "warning");
     }
@@ -143,7 +168,6 @@ export default function AddEvent() {
       return Swal.fire("Wajib diisi", "Jam event wajib diisi (HH:MM).", "warning");
     }
 
-    // Optional warning kalau sudah lewat (tetap boleh simpan, jadi expired)
     if (expiredByDateTime) {
       const warn = await Swal.fire({
         icon: "warning",
@@ -172,17 +196,14 @@ export default function AddEvent() {
 
     try {
       const fd = new FormData();
-
-      // Auto-expired kalau tanggal+jam sudah lewat
       const finalStatus = expiredByDateTime ? "expired" : form.status;
 
       fd.append("title", form.title.trim());
       fd.append("description", form.description || "");
       fd.append("date", form.date);
-      fd.append("time", form.time); // ✅ IMPORTANT
+      fd.append("time", form.time);
       fd.append("location", form.location || "");
       fd.append("status", finalStatus);
-
       if (poster) fd.append("poster", poster);
 
       await api.post("/events", fd);
@@ -195,7 +216,7 @@ export default function AddEvent() {
         showConfirmButton: false,
       });
 
-      setTimeout(() => navigate("/admin/events"), 800);
+      setTimeout(() => navigate("/admin/events"), 700);
     } catch (err) {
       Swal.fire("Gagal", err?.response?.data?.message || "Terjadi kesalahan", "error");
     } finally {
@@ -204,171 +225,144 @@ export default function AddEvent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 fade-in">
-      <Navbar title="Add Event" />
+    <div className="min-h-screen bg-slate-50">
+      <Sidebar />
 
-      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
-
-        <main className="rounded-2xl border bg-white p-6 shadow-sm max-w-3xl">
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-6 rounded-xl border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 transition"
-            type="button"
-          >
-            ← Kembali
-          </button>
-
+      {/* CONTENT WRAPPER */}
+      <div className="md:pl-64 pt-[56px] md:pt-0">
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          {/* Header */}
           <div className="mb-6">
-            <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
-              Event
+            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
+              Admin • Event
             </p>
-            <h2 className="mt-2 text-2xl font-bold text-gray-900">Tambah Event Baru</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Isi informasi event dengan lengkap, termasuk jam acara.
-            </p>
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-extrabold text-slate-900">
+                  Tambah Event Baru
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Isi informasi event dengan lengkap, termasuk jam acara.
+                </p>
+              </div>
+
+              <button
+                onClick={() => navigate(-1)}
+                type="button"
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+              >
+                ← Kembali
+              </button>
+            </div>
           </div>
 
-          {expiredByDateTime ? (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              Tanggal & jam yang dipilih sudah lewat. Saat disimpan, status akan otomatis menjadi{" "}
-              <b>EXPIRED</b>.
-            </div>
-          ) : null}
-
-          <form onSubmit={handleSubmit} className="space-y-6 fade-up">
-            <Field label="Judul Event" required>
-              <input
-                className="input"
-                placeholder="Contoh: Seminar UIKA 2025"
-                value={form.title}
-                onChange={(e) => updateForm("title", e.target.value)}
-                required
-              />
-            </Field>
-
-            <Field label="Deskripsi Event" hint="Opsional">
-              <textarea
-                className="textarea"
-                placeholder="Deskripsi singkat event"
-                value={form.description}
-                onChange={(e) => updateForm("description", e.target.value)}
-              />
-            </Field>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Field label="Tanggal Event" required hint="Tidak disarankan pilih tanggal lampau">
-                <input
-                  type="date"
-                  className="input"
-                  value={form.date}
-                  min={todayISO()}
-                  onChange={(e) => updateForm("date", e.target.value)}
-                  required
-                />
-              </Field>
-
-              <Field label="Jam Event" required hint="Format: HH:MM">
-                <input
-                  type="time"
-                  className="input"
-                  value={form.time}
-                  onChange={(e) => updateForm("time", e.target.value)}
-                  required
-                />
-              </Field>
-            </div>
-
-            <Field label="Lokasi" hint="Opsional">
-              <input
-                className="input"
-                placeholder="Contoh: Aula Utama UIKA"
-                value={form.location}
-                onChange={(e) => updateForm("location", e.target.value)}
-              />
-            </Field>
-
-            <Field label="Status" hint="Default Active (auto expired jika waktu lewat)">
-              <select
-                className="input bg-white"
-                value={form.status}
-                onChange={(e) => updateForm("status", e.target.value)}
-                disabled={expiredByDateTime}
-                title={expiredByDateTime ? "Tanggal+jam sudah lewat → status otomatis expired" : ""}
-              >
-                <option value="active">Active</option>
-                <option value="expired">Expired</option>
-              </select>
-            </Field>
-
-            <Field label="Poster Event" hint="JPG/PNG/WEBP max 4MB">
-              <div className="flex flex-col sm:flex-row items-start gap-4">
-                <div className="w-full sm:w-44 h-44 rounded-2xl border bg-gray-50 flex items-center justify-center overflow-hidden shadow-sm">
-                  {preview ? (
-                    <img src={preview} className="w-full h-full object-cover" alt="Poster Preview" />
-                  ) : (
-                    <span className="text-gray-400 text-sm">No Poster</span>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <label className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl cursor-pointer text-sm font-semibold hover:bg-blue-100 border border-blue-100 inline-flex items-center justify-center">
-                    Upload Poster
-                    <input type="file" accept="image/*" onChange={handlePosterChange} className="hidden" />
-                  </label>
-
-                  {preview ? (
-                    <button
-                      type="button"
-                      onClick={clearPoster}
-                      className="px-4 py-2 rounded-xl border text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                      Hapus Poster
-                    </button>
-                  ) : null}
-                </div>
+          {/* Card */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm max-w-3xl">
+            {expiredByDateTime ? (
+              <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Tanggal & jam yang dipilih sudah lewat. Saat disimpan, status akan otomatis menjadi{" "}
+                <b>EXPIRED</b>.
               </div>
-            </Field>
+            ) : null}
 
-            <SubmitButton loading={saving} text="Buat Event" />
-          </form>
-        </main>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <Field label="Judul Event" required>
+                <Input
+                  placeholder="Contoh: Seminar UIKA 2025"
+                  value={form.title}
+                  onChange={(e) => updateForm("title", e.target.value)}
+                  required
+                />
+              </Field>
+
+              <Field label="Deskripsi Event" hint="Opsional">
+                <Textarea
+                  placeholder="Deskripsi singkat event"
+                  value={form.description}
+                  onChange={(e) => updateForm("description", e.target.value)}
+                />
+              </Field>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Tanggal Event" required hint="Tidak disarankan pilih tanggal lampau">
+                  <Input
+                    type="date"
+                    value={form.date}
+                    min={todayISO()}
+                    onChange={(e) => updateForm("date", e.target.value)}
+                    required
+                  />
+                </Field>
+
+                <Field label="Jam Event" required hint="Format: HH:MM">
+                  <Input
+                    type="time"
+                    value={form.time}
+                    onChange={(e) => updateForm("time", e.target.value)}
+                    required
+                  />
+                </Field>
+              </div>
+
+              <Field label="Lokasi" hint="Opsional">
+                <Input
+                  placeholder="Contoh: Aula Utama UIKA"
+                  value={form.location}
+                  onChange={(e) => updateForm("location", e.target.value)}
+                />
+              </Field>
+
+              <Field label="Status" hint="Default Active (auto expired jika waktu lewat)">
+                <select
+                  className={[
+                    "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none",
+                    "focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition",
+                    expiredByDateTime ? "opacity-60 cursor-not-allowed" : "",
+                  ].join(" ")}
+                  value={form.status}
+                  onChange={(e) => updateForm("status", e.target.value)}
+                  disabled={expiredByDateTime}
+                  title={expiredByDateTime ? "Tanggal+jam sudah lewat → status otomatis expired" : ""}
+                >
+                  <option value="active">Active</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </Field>
+
+              <Field label="Poster Event" hint="JPG/PNG/WEBP max 4MB">
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <div className="w-full sm:w-44 h-44 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                    {preview ? (
+                      <img src={preview} className="w-full h-full object-cover" alt="Poster Preview" />
+                    ) : (
+                      <span className="text-slate-400 text-sm">No Poster</span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <label className="px-4 py-2.5 rounded-2xl cursor-pointer text-sm font-bold bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
+                      Upload Poster
+                      <input type="file" accept="image/*" onChange={handlePosterChange} className="hidden" />
+                    </label>
+
+                    {preview ? (
+                      <button
+                        type="button"
+                        onClick={clearPoster}
+                        className="px-4 py-2.5 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+                      >
+                        Hapus Poster
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </Field>
+
+              <PrimaryButton loading={saving}>Buat Event</PrimaryButton>
+            </form>
+          </div>
+        </div>
       </div>
-
-      <style>{`
-        .fade-in { animation: fadeIn .25s ease-out; }
-        .fade-up { animation: fadeUp .25s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-        .input {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          padding: 12px;
-          border-radius: 0.85rem;
-          box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-          outline: none;
-          background: white;
-        }
-        .input:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px #2563eb20;
-        }
-        .textarea {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          padding: 12px;
-          border-radius: 0.85rem;
-          min-height: 120px;
-          outline: none;
-        }
-        .textarea:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px #2563eb20;
-        }
-      `}</style>
     </div>
   );
 }
