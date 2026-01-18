@@ -68,16 +68,16 @@ export default function EditEvent() {
     status: "active",
   });
 
-  const [poster, setPoster] = useState(null);
-  const [preview, setPreview] = useState(null);
+  // poster file + preview
+  const [poster, setPoster] = useState(null); // File
+  const [preview, setPreview] = useState(null); // string URL (blob atau URL server)
 
   const expired = useMemo(
     () => isExpiredDateTime(form.date, form.time),
     [form.date, form.time]
   );
 
-  const updateForm = (k, v) =>
-    setForm((prev) => ({ ...prev, [k]: v }));
+  const updateForm = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
 
   /* =========================
      LOAD EVENT
@@ -100,6 +100,8 @@ export default function EditEvent() {
           status: ev.status || "active",
         });
 
+        // preview dari server (bukan blob)
+        setPoster(null);
         setPreview(ev.poster_url || null);
       } catch {
         Swal.fire("Error", "Event tidak ditemukan", "error").then(() =>
@@ -112,26 +114,48 @@ export default function EditEvent() {
 
     return () => {
       mounted = false;
+    };
+  }, [id, navigate]);
+
+  // cleanup untuk preview blob biar nggak bocor memory
+  useEffect(() => {
+    return () => {
       if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     };
-  }, [id]);
+  }, [preview]);
 
   /* =========================
-     POSTER
+     POSTER HANDLER
   ========================= */
   const handlePoster = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 4 * 1024 * 1024)
+    if (file.size > 4 * 1024 * 1024) {
       return Swal.fire("Peringatan", "Poster maksimal 4MB", "warning");
+    }
 
     const allowed = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-    if (!allowed.includes(file.type))
+    if (!allowed.includes(file.type)) {
       return Swal.fire("Error", "Format poster tidak valid", "error");
+    }
+
+    // revoke blob lama (kalau sebelumnya preview adalah blob)
+    setPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return prev;
+    });
 
     setPoster(file);
     setPreview(URL.createObjectURL(file));
+  };
+
+  const clearPosterSelection = () => {
+    setPoster(null);
+    setPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
   };
 
   /* =========================
@@ -140,8 +164,9 @@ export default function EditEvent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.title.trim())
+    if (!form.title.trim()) {
       return Swal.fire("Validasi", "Judul wajib diisi", "warning");
+    }
 
     const confirm = await Swal.fire({
       title: "Simpan Perubahan?",
@@ -158,10 +183,19 @@ export default function EditEvent() {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+
+      // status dipaksa expired kalau waktunya sudah lewat (sesuai UI)
       fd.set("status", expired ? "expired" : form.status);
+
+      // upload poster (optional)
       if (poster) fd.append("poster", poster);
 
-      await api.post(`/events/${id}?_method=PUT`, fd);
+      // Laravel method spoofing (paling aman untuk multipart)
+      fd.append("_method", "PUT");
+
+      await api.post(`/events/${id}`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       Swal.fire({
         icon: "success",
@@ -170,7 +204,7 @@ export default function EditEvent() {
         showConfirmButton: false,
       });
 
-      setTimeout(() => navigate("/admin/events"), 1000);
+      setTimeout(() => navigate("/admin/events"), 900);
     } catch (err) {
       Swal.fire("Gagal", "Gagal menyimpan perubahan", "error");
     } finally {
@@ -184,12 +218,12 @@ export default function EditEvent() {
 
       <div className="md:pl-64">
         <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-
           {/* HEADER */}
           <div>
             <button
               onClick={() => navigate(-1)}
               className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
+              type="button"
             >
               ← Kembali
             </button>
@@ -209,7 +243,8 @@ export default function EditEvent() {
           <main className="rounded-3xl border bg-white p-6 shadow-sm max-w-3xl">
             {expired && (
               <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                Waktu event sudah lewat. Status akan otomatis menjadi <b>EXPIRED</b>.
+                Waktu event sudah lewat. Status akan otomatis menjadi{" "}
+                <b>EXPIRED</b>.
               </div>
             )}
 
@@ -221,9 +256,7 @@ export default function EditEvent() {
                   <input
                     className="input"
                     value={form.title}
-                    onChange={(e) =>
-                      updateForm("title", e.target.value)
-                    }
+                    onChange={(e) => updateForm("title", e.target.value)}
                   />
                 </Field>
 
@@ -231,9 +264,7 @@ export default function EditEvent() {
                   <textarea
                     className="textarea"
                     value={form.description}
-                    onChange={(e) =>
-                      updateForm("description", e.target.value)
-                    }
+                    onChange={(e) => updateForm("description", e.target.value)}
                   />
                 </Field>
 
@@ -243,9 +274,7 @@ export default function EditEvent() {
                       type="date"
                       className="input"
                       value={form.date}
-                      onChange={(e) =>
-                        updateForm("date", e.target.value)
-                      }
+                      onChange={(e) => updateForm("date", e.target.value)}
                     />
                   </Field>
 
@@ -254,9 +283,7 @@ export default function EditEvent() {
                       type="time"
                       className="input"
                       value={form.time}
-                      onChange={(e) =>
-                        updateForm("time", e.target.value)
-                      }
+                      onChange={(e) => updateForm("time", e.target.value)}
                     />
                   </Field>
                 </div>
@@ -265,31 +292,50 @@ export default function EditEvent() {
                   <input
                     className="input"
                     value={form.location}
-                    onChange={(e) =>
-                      updateForm("location", e.target.value)
-                    }
+                    onChange={(e) => updateForm("location", e.target.value)}
                   />
                 </Field>
 
-                <Field label="Poster Event">
-                  <div className="flex gap-4">
-                    <div className="w-40 h-40 rounded-2xl border bg-slate-50 flex items-center justify-center overflow-hidden">
-                      {preview ? (
-                        <img src={preview} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-slate-400 text-sm">No Poster</span>
-                      )}
+                <Field label="Poster Event" hint="jpg/png/webp, maks 4MB">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
+                    <div className="w-full sm:w-44">
+                      <div className="aspect-square rounded-2xl border bg-slate-50 flex items-center justify-center overflow-hidden">
+                        {preview ? (
+                          <img
+                            src={preview}
+                            alt="Poster preview"
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="text-slate-400 text-sm">
+                            No Poster
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <label className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl cursor-pointer font-semibold text-sm hover:bg-blue-100 border">
-                      Upload Poster
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePoster}
-                        className="hidden"
-                      />
-                    </label>
+                    <div className="flex flex-wrap gap-3">
+                      <label className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl cursor-pointer font-semibold text-sm hover:bg-blue-100 border">
+                        Upload Poster
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePoster}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {poster && (
+                        <button
+                          type="button"
+                          onClick={clearPosterSelection}
+                          className="px-4 py-2 rounded-xl border text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Batal pilih
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </Field>
 

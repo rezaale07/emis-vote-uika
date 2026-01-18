@@ -55,7 +55,7 @@ export default function Login() {
       {/* LEFT IMAGE */}
       <div className="relative hidden md:block">
         <img
-          src="https://images.unsplash.com/photo-1523246191549-2f9b3f1f3b9f?q=80&w=1600&auto=format&fit=crop"
+          src="/img/uika.jpg"
           alt="Login Background"
           className="h-full w-full object-cover"
         />
