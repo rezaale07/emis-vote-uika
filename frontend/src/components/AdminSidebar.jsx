@@ -52,26 +52,39 @@ export default function AdminSidebar({ open, onClose }) {
         aria-label="Admin Sidebar"
       >
         {/* Header */}
-        <div className="p-6 border-b">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">
-                EMIS-Vote
-              </h1>
-              <p className="text-xs text-gray-500">Admin Dashboard</p>
-            </div>
+<div className="p-6 border-b">
+  <div className="flex items-start justify-between gap-3">
+    <div className="flex items-center gap-3">
+      {/* LOGO */}
+      <div className="grid h-10 w-10 place-items-center rounded-xl">
+        <img
+          src="/img/logouika.png"
+          alt="Logo UIKA"
+          className="h-full w-full object-contain"
+        />
+      </div>
 
-            {/* Close button (mobile) */}
-            <button
-              onClick={onClose}
-              className="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-xl hover:bg-gray-100 text-gray-600"
-              aria-label="Tutup sidebar"
-              type="button"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+      {/* TEXT */}
+      <div>
+        <h1 className="text-lg font-bold text-gray-900 leading-tight">
+          EMIS-Vote
+        </h1>
+        <p className="text-xs text-gray-500">Admin Dashboard</p>
+      </div>
+    </div>
+
+    {/* Close button (mobile) */}
+    <button
+      onClick={onClose}
+      className="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-xl hover:bg-gray-100 text-gray-600"
+      aria-label="Tutup sidebar"
+      type="button"
+    >
+      ✕
+    </button>
+  </div>
+</div>
+
 
         {/* Nav */}
         <nav className="p-4 space-y-1 flex-1 overflow-y-auto">

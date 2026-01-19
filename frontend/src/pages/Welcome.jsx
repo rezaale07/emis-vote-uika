@@ -12,9 +12,7 @@ function useRevealOnScroll() {
       const vh = window.innerHeight;
       els.forEach((el) => {
         const rect = el.getBoundingClientRect();
-        if (rect.top < vh - 120) {
-          el.classList.add("reveal-show");
-        }
+        if (rect.top < vh - 120) el.classList.add("reveal-show");
       });
     };
 
@@ -24,9 +22,6 @@ function useRevealOnScroll() {
   }, []);
 }
 
-/* =========================
-   HOOK: NAVBAR SHRINK
-========================= */
 function useNavbarShrink() {
   const [shrink, setShrink] = useState(false);
 
@@ -39,6 +34,7 @@ function useNavbarShrink() {
   return shrink;
 }
 
+
 /* =========================
    MAIN COMPONENT
 ========================= */
@@ -46,6 +42,19 @@ export default function Welcome() {
   useRevealOnScroll();
   const shrink = useNavbarShrink();
   const featureRef = useRef(null);
+
+  // ===== slider state =====
+  const images = ["/img/iklan1.png", "/img/iklan2.png", "/img/iklan3.png"];
+const [current, setCurrent] = useState(0);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrent((prev) => (prev + 1) % images.length);
+  }, 3000);
+  return () => clearInterval(interval);
+}, []);
+
+  // ========================
 
   const scrollToFeature = () => {
     featureRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -62,9 +71,14 @@ export default function Welcome() {
       >
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-white font-bold">
-              E
-            </div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl">
+  <img
+    src="/img/logouika.png"
+    alt="Logo UIKA"
+    className="h-full w-full object-contain"
+  />
+</div>
+
             <div className="leading-tight">
               <p className="text-sm font-semibold">EMIS-Vote UIKA</p>
               <p className="text-xs text-slate-500 -mt-0.5">
@@ -145,15 +159,22 @@ export default function Welcome() {
 
             {/* RIGHT */}
             <div data-reveal className="reveal-base">
-              <div className="rounded-3xl overflow-hidden shadow-xl ring-1 ring-slate-200 bg-white">
-                <img
-                  src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?q=80&w=1600&auto=format&fit=crop"
-                  alt="Event Kampus"
-                  className="h-[340px] w-full object-cover hover:scale-105 transition duration-700"
-                />
-              </div>
-            </div>
-
+  <div className="overflow-hidden shadow-xl ring-1 ring-slate-200 bg-white">
+    <div className="relative h-[340px] w-full bg-white overflow-hidden">
+      {images.map((img, index) => (
+        <img
+          key={img}
+          src={img}
+          alt={`iklan ${index + 1}`}
+          className={
+            "absolute inset-0 h-full w-full object-contain transition-all duration-700 " +
+            (index === current ? "opacity-100" : "opacity-0")
+          }
+        />
+      ))}
+    </div>
+  </div>
+</div>
           </div>
         </div>
       </section>

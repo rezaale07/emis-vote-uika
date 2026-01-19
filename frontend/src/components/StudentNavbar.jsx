@@ -59,10 +59,19 @@ export default function StudentNavbar() {
               ☰
             </button>
 
-            <div className="text-sm font-bold text-gray-900 tracking-wide">
-              EMIS-Vote
+            <div className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-items-center rounded-xl">
+            <img
+            src="/img/logouika.png"
+            alt="Logo UIKA"
+            className="h-full w-full object-contain"
+            />
             </div>
 
+            <div className="text-sm font-bold text-gray-900 tracking-wide">
+            EMIS-Vote
+            </div>
+            </div>
             {/* DESKTOP MENU */}
             <nav className="hidden md:flex items-center gap-3">
               <NavLink to="/student/events" className={({ isActive }) => tabClass(isActive)}>
