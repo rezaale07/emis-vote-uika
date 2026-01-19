@@ -5,7 +5,7 @@ import StudentNavbar from "../components/StudentNavbar";
 import Swal from "sweetalert2";
 
 /* =========================
-   DATE FORMATTER
+   HELPERS
 ========================= */
 const formatDateTime = (value) => {
   if (!value) return "-";
@@ -17,6 +17,17 @@ const formatDateTime = (value) => {
     minute: "2-digit",
   });
 };
+
+/* =========================
+   UI ATOMS
+========================= */
+function SkeletonBox({ className }) {
+  return (
+    <div
+      className={`animate-pulse rounded-3xl bg-slate-200 ${className}`}
+    />
+  );
+}
 
 export default function EventParticipants() {
   const { id } = useParams();
@@ -56,27 +67,36 @@ export default function EventParticipants() {
   }, [id]);
 
   /* =========================
-     UI STATES
+     LOADING
   ========================= */
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50">
         <StudentNavbar />
-        <div className="max-w-5xl mx-auto p-6 animate-pulse space-y-4">
-          <div className="h-8 w-40 bg-slate-200 rounded-xl" />
-          <div className="h-40 bg-slate-200 rounded-3xl" />
-          <div className="h-52 bg-slate-200 rounded-2xl" />
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 space-y-4">
+          <SkeletonBox className="h-10 w-40" />
+          <SkeletonBox className="h-40 w-full" />
+          <SkeletonBox className="h-56 w-full" />
         </div>
       </div>
     );
   }
 
+  /* =========================
+     NOT FOUND
+  ========================= */
   if (!event) {
     return (
       <div className="min-h-screen bg-slate-50">
         <StudentNavbar />
-        <div className="text-center py-20 text-slate-500">
-          Event tidak ditemukan.
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 text-center">
+          <p className="text-slate-500">Event tidak ditemukan.</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-5 inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+          >
+            ← Kembali
+          </button>
         </div>
       </div>
     );
@@ -86,52 +106,63 @@ export default function EventParticipants() {
     <div className="min-h-screen bg-slate-50">
       <StudentNavbar />
 
-      <div className="max-w-5xl mx-auto p-6 fade-in">
-        {/* BACK */}
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-5 inline-flex items-center gap-2 px-4 py-2 bg-white border rounded-xl shadow-sm hover:bg-slate-100 transition"
-        >
-          ← Kembali
-        </button>
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 fade-in">
+        {/* TOP BAR */}
+        <div className="mb-5">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+          >
+            ← Kembali
+          </button>
+        </div>
 
-        {/* EVENT HEADER */}
-        <div className="bg-white rounded-3xl border shadow-sm overflow-hidden mb-6">
-          <img
-            src={
-              event.poster_url ??
-              "https://source.unsplash.com/1200x300/?event,seminar"
-            }
-            className="w-full h-40 object-cover"
-            alt={event.title}
-          />
+        {/* EVENT CARD */}
+        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden mb-6">
+          {/* POSTER */}
+          <div className="h-40 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+            {event.poster_url ? (
+              <img
+                src={event.poster_url}
+                alt={event.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-center">
+                <div className="text-3xl">📅</div>
+                <p className="mt-1 text-sm text-slate-500">
+                  No Poster
+                </p>
+              </div>
+            )}
+          </div>
 
-          <div className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-xl font-extrabold text-slate-900">
                 {event.title}
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
-                Daftar peserta yang telah mendaftar event ini
+              <p className="mt-1 text-sm text-slate-600">
+                Daftar mahasiswa yang mendaftar pada event ini
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-xl text-sm font-semibold">
-              👥 Total Peserta: {participants.length}
-            </div>
+            <span className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
+              👥 {participants.length} Peserta
+            </span>
           </div>
         </div>
 
-        {/* PARTICIPANTS TABLE */}
-        <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
-          <div className="p-5 border-b">
+        {/* PARTICIPANTS */}
+        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b px-6 py-4">
             <h2 className="font-semibold text-slate-800">
               Daftar Peserta Event
             </h2>
           </div>
 
           {participants.length === 0 ? (
-            <div className="py-14 text-center text-sm text-slate-500">
+            <div className="py-16 text-center text-sm text-slate-500">
               Belum ada peserta yang mendaftar.
             </div>
           ) : (
@@ -139,9 +170,15 @@ export default function EventParticipants() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="py-3 px-5 text-left">Nama</th>
-                    <th className="py-3 px-5 text-left">Email</th>
-                    <th className="py-3 px-5 text-left">Tanggal Daftar</th>
+                    <th className="py-3 px-6 text-left font-semibold">
+                      Nama
+                    </th>
+                    <th className="py-3 px-6 text-left font-semibold">
+                      Email
+                    </th>
+                    <th className="py-3 px-6 text-left font-semibold">
+                      Tanggal Daftar
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -152,13 +189,13 @@ export default function EventParticipants() {
                         idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"
                       }`}
                     >
-                      <td className="py-3 px-5 font-medium text-slate-900">
+                      <td className="py-3 px-6 font-medium text-slate-900">
                         {p.user?.name ?? "-"}
                       </td>
-                      <td className="py-3 px-5 text-slate-600">
+                      <td className="py-3 px-6 text-slate-600">
                         {p.user?.email ?? "-"}
                       </td>
-                      <td className="py-3 px-5 text-slate-600">
+                      <td className="py-3 px-6 text-slate-600">
                         {formatDateTime(p.created_at)}
                       </td>
                     </tr>

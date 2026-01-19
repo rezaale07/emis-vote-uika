@@ -1,20 +1,74 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
+import AdminLayout from "../layouts/AdminLayout";
 import { createVoting } from "../services/api";
 import Swal from "sweetalert2";
 
 /* =========================
-   INPUT WRAPPER
+   UI ATOMS
 ========================= */
-function Field({ label, required, children }) {
+function Field({ label, hint, required, children }) {
   return (
-    <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+    <div className="space-y-2">
+      <div className="flex items-end justify-between gap-2">
+        <label className="text-sm font-semibold text-slate-800">
+          {label} {required ? <span className="text-red-500">*</span> : null}
+        </label>
+        {hint ? <span className="text-[11px] text-slate-500">{hint}</span> : null}
+      </div>
       {children}
     </div>
+  );
+}
+
+function Input(props) {
+  return (
+    <input
+      {...props}
+      className={[
+        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition",
+        "focus:border-blue-500 focus:ring-4 focus:ring-blue-100",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function Textarea(props) {
+  return (
+    <textarea
+      {...props}
+      className={[
+        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition",
+        "focus:border-blue-500 focus:ring-4 focus:ring-blue-100",
+        "min-h-[120px]",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function PrimaryButton({ loading, children }) {
+  return (
+    <button
+      disabled={loading}
+      type="submit"
+      className={[
+        "w-full rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-sm transition",
+        loading
+          ? "bg-blue-300 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700 active:translate-y-[1px]",
+      ].join(" ")}
+    >
+      {loading ? (
+        <span className="inline-flex items-center justify-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          Menyimpan...
+        </span>
+      ) : (
+        children
+      )}
+    </button>
   );
 }
 
@@ -35,7 +89,7 @@ export default function CreateVoting() {
 
   useEffect(() => {
     return () => {
-      if (preview) URL.revokeObjectURL(preview);
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
@@ -54,14 +108,22 @@ export default function CreateVoting() {
       return;
     }
 
-    const allowed = ["image/jpeg", "image/png", "image/jpg"];
+    const allowed = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
     if (!allowed.includes(file.type)) {
-      Swal.fire("Format Tidak Valid", "Poster harus JPG atau PNG", "error");
+      Swal.fire("Format Tidak Valid", "Poster harus JPG/PNG/WEBP", "error");
       return;
     }
 
+    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+
     setPoster(file);
     setPreview(URL.createObjectURL(file));
+  };
+
+  const clearPoster = () => {
+    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    setPreview(null);
+    setPoster(null);
   };
 
   /* =========================
@@ -82,13 +144,25 @@ export default function CreateVoting() {
       );
     }
 
+    const confirm = await Swal.fire({
+      title: "Buat Voting?",
+      text: "Pastikan data voting sudah benar.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Simpan",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#2563eb",
+    });
+
+    if (!confirm.isConfirmed) return;
+
     setSaving(true);
 
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-    if (poster) fd.append("poster", poster);
-
     try {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      if (poster) fd.append("poster", poster);
+
       await createVoting(fd);
 
       Swal.fire({
@@ -99,7 +173,7 @@ export default function CreateVoting() {
         showConfirmButton: false,
       });
 
-      setTimeout(() => navigate("/admin/voting"), 1200);
+      setTimeout(() => navigate("/admin/voting"), 900);
     } catch (err) {
       Swal.fire(
         "Gagal",
@@ -112,114 +186,112 @@ export default function CreateVoting() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Sidebar />
-
-      <div className="md:pl-64">
-        <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-
+    <AdminLayout title="Create Voting" subtitle="Admin • Voting">
+      <main className="flex justify-center">
+        <div className="w-full max-w-3xl space-y-6">
           {/* HEADER */}
-          <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
+                Voting
+              </p>
+              <h1 className="mt-2 text-2xl font-extrabold text-slate-900">
+                Buat Voting Baru
+              </h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Tambahkan voting baru untuk pemilihan kampus.
+              </p>
+            </div>
+
             <button
               onClick={() => navigate(-1)}
-              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
+              type="button"
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
             >
               ← Kembali
             </button>
-
-            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
-              Voting
-            </p>
-            <h1 className="mt-2 text-2xl font-extrabold text-slate-900">
-              Buat Voting Baru
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Tambahkan voting baru untuk pemilihan kampus.
-            </p>
           </div>
 
           {/* FORM CARD */}
-          <main className="rounded-3xl border bg-white p-6 shadow-sm max-w-3xl">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <form onSubmit={handleSubmit} className="space-y-6">
-
               <Field label="Judul Voting" required>
-                <input
-                  className="input"
+                <Input
                   placeholder="Contoh: Pemilihan Ketua BEM"
                   value={form.title}
                   onChange={(e) => updateForm("title", e.target.value)}
                 />
               </Field>
 
-              <Field label="Deskripsi">
-                <textarea
-                  className="textarea"
+              <Field label="Deskripsi" hint="Opsional">
+                <Textarea
                   placeholder="Deskripsi singkat voting"
                   value={form.description}
-                  onChange={(e) =>
-                    updateForm("description", e.target.value)
-                  }
+                  onChange={(e) => updateForm("description", e.target.value)}
                 />
               </Field>
 
-              <Field label="Poster Voting">
-                <div className="flex items-start gap-4">
-                  <div className="w-40 h-40 rounded-2xl border bg-slate-50 flex items-center justify-center overflow-hidden shadow-sm">
+              <Field label="Poster Voting" hint="JPG/PNG/WEBP max 4MB (opsional)">
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-40 h-40 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
                     {preview ? (
                       <img
                         src={preview}
+                        alt="Poster Preview"
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-slate-400 text-sm">
-                        No Poster
-                      </span>
+                      <span className="text-sm text-slate-400">No Poster</span>
                     )}
                   </div>
 
-                  <label className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl cursor-pointer text-sm font-semibold hover:bg-blue-100 border border-blue-100">
-                    Upload Poster
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePoster}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <label className="cursor-pointer rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
+                      Upload Poster
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePoster}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {preview ? (
+                      <button
+                        type="button"
+                        onClick={clearPoster}
+                        className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+                      >
+                        Hapus Poster
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </Field>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Tanggal Mulai">
-                  <input
+                  <Input
                     type="date"
-                    className="input"
                     value={form.start_date}
-                    onChange={(e) =>
-                      updateForm("start_date", e.target.value)
-                    }
+                    onChange={(e) => updateForm("start_date", e.target.value)}
                   />
                 </Field>
 
                 <Field label="Tanggal Selesai">
-                  <input
+                  <Input
                     type="date"
-                    className="input"
                     value={form.end_date}
-                    onChange={(e) =>
-                      updateForm("end_date", e.target.value)
-                    }
+                    onChange={(e) => updateForm("end_date", e.target.value)}
                   />
                 </Field>
               </div>
 
               <Field label="Status">
                 <select
-                  className="input bg-white"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   value={form.status}
-                  onChange={(e) =>
-                    updateForm("status", e.target.value)
-                  }
+                  onChange={(e) => updateForm("status", e.target.value)}
                 >
                   <option value="draft">Draft</option>
                   <option value="active">Active</option>
@@ -227,51 +299,15 @@ export default function CreateVoting() {
                 </select>
               </Field>
 
-              <button
-                disabled={saving}
-                className={`w-full py-3 rounded-xl text-white font-semibold shadow transition ${
-                  saving
-                    ? "bg-blue-300 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
-                {saving ? "Menyimpan..." : "Buat Voting"}
-              </button>
+              <PrimaryButton loading={saving}>Buat Voting</PrimaryButton>
             </form>
-          </main>
+          </div>
 
-          <div className="text-center text-xs text-slate-400">
+          <div className="text-center text-xs text-slate-400 pt-4">
             © 2025 UIKA IT Division
           </div>
         </div>
-      </div>
-
-      {/* STYLES */}
-      <style>{`
-        .input {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          padding: 12px;
-          border-radius: 0.9rem;
-          outline: none;
-        }
-        .input:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px #2563eb25;
-        }
-        .textarea {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          padding: 12px;
-          border-radius: 0.9rem;
-          min-height: 120px;
-          outline: none;
-        }
-        .textarea:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px #2563eb25;
-        }
-      `}</style>
-    </div>
+      </main>
+    </AdminLayout>
   );
 }

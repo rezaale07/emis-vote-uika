@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
+import AdminLayout from "../layouts/AdminLayout";
 import { getEventParticipants, getEventById } from "../services/api";
 import Swal from "sweetalert2";
 
@@ -22,11 +22,7 @@ const formatDateTime = (value) => {
    SKELETON
 ========================= */
 function SkeletonBox({ className }) {
-  return (
-    <div
-      className={`animate-pulse rounded-3xl bg-slate-100 ${className}`}
-    />
-  );
+  return <div className={`animate-pulse rounded-3xl bg-slate-100 ${className}`} />;
 }
 
 export default function AdminEventParticipants() {
@@ -57,6 +53,9 @@ export default function AdminEventParticipants() {
         text: "Terjadi kesalahan saat mengambil data peserta.",
         confirmButtonColor: "#2563eb",
       });
+
+      setEvent(null);
+      setParticipants([]);
     } finally {
       setLoading(false);
     }
@@ -70,22 +69,14 @@ export default function AdminEventParticipants() {
   const status = event?.status ?? "active";
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Sidebar />
-
-      {/* CONTENT */}
-      <div className="md:pl-64">
-        <div className="mx-auto max-w-7xl px-4 py-8 space-y-8">
-
-          {/* HEADER */}
+    <AdminLayout
+      title="Event Participants"
+      subtitle={event?.title ? `Admin • ${event.title}` : "Admin • Event"}
+    >
+      <div className="space-y-6">
+        {/* HEADER */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <button
-              onClick={() => navigate(-1)}
-              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
-            >
-              ← Kembali
-            </button>
-
             <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
               Event Participants
             </p>
@@ -97,56 +88,58 @@ export default function AdminEventParticipants() {
             </p>
           </div>
 
-          {/* EVENT INFO */}
-          {loading ? (
-            <SkeletonBox className="h-32" />
-          ) : (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  {event?.title}
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  {event?.date} · {event?.location || "Lokasi belum ditentukan"}
-                </p>
-                <p className="mt-2 text-xs text-slate-500">
-                  Total Peserta:{" "}
-                  <span className="font-semibold text-slate-700">
-                    {total}
-                  </span>
-                </p>
-              </div>
+          <button
+            onClick={() => navigate(-1)}
+            type="button"
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+          >
+            ← Kembali
+          </button>
+        </div>
 
-              <span
-                className={`self-start sm:self-center rounded-full px-4 py-1.5 text-xs font-bold border ${
-                  status === "active"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "bg-red-50 text-red-700 border-red-200"
-                }`}
-              >
-                {status.toUpperCase()}
-              </span>
+        {/* EVENT INFO */}
+        {loading ? (
+          <SkeletonBox className="h-32" />
+        ) : (
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">{event?.title}</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                {event?.date} · {event?.location || "Lokasi belum ditentukan"}
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                Total Peserta:{" "}
+                <span className="font-semibold text-slate-700">{total}</span>
+              </p>
             </div>
-          )}
 
-          {/* TABLE */}
-          {loading ? (
-            <SkeletonBox className="h-48" />
-          ) : total === 0 ? (
-            <div className="rounded-3xl border border-dashed bg-white py-16 text-center text-sm text-slate-500">
-              Belum ada peserta yang mendaftar.
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
+            <span
+              className={`self-start sm:self-center rounded-full px-4 py-1.5 text-xs font-bold border ${
+                status === "active"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-red-50 text-red-700 border-red-200"
+              }`}
+            >
+              {String(status).toUpperCase()}
+            </span>
+          </div>
+        )}
+
+        {/* TABLE */}
+        {loading ? (
+          <SkeletonBox className="h-48" />
+        ) : total === 0 ? (
+          <div className="rounded-3xl border border-dashed bg-white py-16 text-center text-sm text-slate-500">
+            Belum ada peserta yang mendaftar.
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-[720px] w-full text-sm">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="py-4 px-6 text-left font-semibold">
-                      Nama
-                    </th>
-                    <th className="py-4 px-6 text-left font-semibold">
-                      Email
-                    </th>
+                    <th className="py-4 px-6 text-left font-semibold">Nama</th>
+                    <th className="py-4 px-6 text-left font-semibold">Email</th>
                     <th className="py-4 px-6 text-left font-semibold">
                       Tanggal Daftar
                     </th>
@@ -155,18 +148,16 @@ export default function AdminEventParticipants() {
                 <tbody>
                   {participants.map((p, idx) => (
                     <tr
-                      key={p.id}
+                      key={p.id ?? idx}
                       className={`border-t transition ${
-                        idx % 2 === 0
-                          ? "bg-white"
-                          : "bg-slate-50/60"
+                        idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"
                       } hover:bg-slate-100`}
                     >
                       <td className="py-4 px-6 font-medium text-slate-900">
-                        {p.user?.name}
+                        {p.user?.name || "-"}
                       </td>
                       <td className="py-4 px-6 text-slate-600">
-                        {p.user?.email}
+                        {p.user?.email || "-"}
                       </td>
                       <td className="py-4 px-6 text-slate-600">
                         {formatDateTime(p.created_at)}
@@ -176,14 +167,14 @@ export default function AdminEventParticipants() {
                 </tbody>
               </table>
             </div>
-          )}
-
-          {/* FOOTER */}
-          <div className="text-center text-xs text-slate-400 pt-8">
-            © 2025 UIKA IT Division
           </div>
+        )}
+
+        {/* FOOTER */}
+        <div className="text-center text-xs text-slate-400 pt-8">
+          © 2025 UIKA IT Division
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

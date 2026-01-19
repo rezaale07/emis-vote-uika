@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
+import AdminLayout from "../layouts/AdminLayout";
 import api from "../services/api";
 import Swal from "sweetalert2";
 
@@ -85,9 +85,6 @@ export default function AddEventVote() {
     };
   }, [preview]);
 
-  /* =========================
-     SUBMIT
-  ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -125,10 +122,7 @@ export default function AddEventVote() {
         showConfirmButton: false,
       });
 
-      setTimeout(
-        () => navigate(`/admin/voting/${id}/event-vote`),
-        700
-      );
+      setTimeout(() => navigate(`/admin/voting/${id}/event-vote`), 700);
     } catch (err) {
       Swal.fire(
         "Gagal",
@@ -141,111 +135,108 @@ export default function AddEventVote() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Sidebar />
-
-      {/* CONTENT */}
-      <div className="md:pl-64 pt-[56px] md:pt-0">
-        <div className="mx-auto max-w-6xl px-4 py-8">
-          {/* HEADER */}
-          <div className="mb-6">
+    <AdminLayout title="Add Event Vote" subtitle="Admin • Voting">
+      {/* CENTER WRAPPER */}
+      <div className="w-full max-w-3xl mx-auto space-y-6">
+        {/* HEADER */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
               Admin • Voting
             </p>
-
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-extrabold text-slate-900">
-                  Tambah Event Voting
-                </h1>
-                <p className="mt-1 text-sm text-slate-600">
-                  Tambahkan kandidat / event voting ke dalam sistem.
-                </p>
-              </div>
-
-              <button
-                onClick={() => navigate(-1)}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
-              >
-                ← Kembali
-              </button>
-            </div>
+            <h1 className="mt-1 text-2xl font-extrabold text-slate-900">
+              Tambah Event Voting
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Tambahkan kandidat / event voting ke dalam sistem.
+            </p>
           </div>
 
-          {/* CARD */}
-          <div className="max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Field label="Nama Event / Kandidat" required>
-                <Input
-                  placeholder="Contoh: Kandidat Ketua BEM"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </Field>
+          <button
+            onClick={() => navigate(-1)}
+            type="button"
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+          >
+            ← Kembali
+          </button>
+        </div>
 
-              <Field label="Deskripsi" hint="Opsional">
-                <Textarea
-                  placeholder="Deskripsi singkat mengenai event / kandidat"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </Field>
+        {/* FORM CARD */}
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Field label="Nama Event / Kandidat" required>
+              <Input
+                placeholder="Contoh: Kandidat Ketua BEM"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </Field>
 
-              <Field label="Poster / Foto" hint="Opsional (JPG / PNG)">
-                <div className="flex flex-col sm:flex-row gap-4 items-start">
-                  <div className="w-40 h-40 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
-                    {preview ? (
-                      <img
-                        src={preview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-sm text-slate-400">No Image</span>
-                    )}
-                  </div>
+            <Field label="Deskripsi" hint="Opsional">
+              <Textarea
+                placeholder="Deskripsi singkat mengenai event / kandidat"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </Field>
 
-                  <div className="flex flex-wrap gap-2">
-                    <label className="cursor-pointer rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
-                      Upload Gambar
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (!f) return;
-                          setFile(f);
-                          setPreview(URL.createObjectURL(f));
-                        }}
-                      />
-                    </label>
-
-                    {preview && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          URL.revokeObjectURL(preview);
-                          setPreview(null);
-                          setFile(null);
-                        }}
-                        className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
-                      >
-                        Hapus
-                      </button>
-                    )}
-                  </div>
+            <Field label="Poster / Foto" hint="Opsional (JPG / PNG)">
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
+                <div className="w-40 h-40 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                  {preview ? (
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm text-slate-400">No Image</span>
+                  )}
                 </div>
-              </Field>
 
-              <PrimaryButton loading={saving}>
-                Simpan Event Voting
-              </PrimaryButton>
-            </form>
-          </div>
+                <div className="flex flex-wrap gap-2">
+                  <label className="cursor-pointer rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
+                    Upload Gambar
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+
+                        if (preview?.startsWith("blob:"))
+                          URL.revokeObjectURL(preview);
+
+                        setFile(f);
+                        setPreview(URL.createObjectURL(f));
+                      }}
+                    />
+                  </label>
+
+                  {preview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (preview?.startsWith("blob:"))
+                          URL.revokeObjectURL(preview);
+                        setPreview(null);
+                        setFile(null);
+                      }}
+                      className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+              </div>
+            </Field>
+
+            <PrimaryButton loading={saving}>Simpan Event Voting</PrimaryButton>
+          </form>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

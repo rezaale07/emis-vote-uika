@@ -5,6 +5,22 @@ import StudentNavbar from "../components/StudentNavbar";
 import { AuthContext } from "../context/AuthContext";
 import Swal from "sweetalert2";
 
+/* =========================
+   UI ATOMS
+========================= */
+function SkeletonBox({ className }) {
+  return <div className={`animate-pulse rounded-3xl bg-slate-200 ${className}`} />;
+}
+
+function InfoCard({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 font-semibold text-slate-800">{value}</p>
+    </div>
+  );
+}
+
 export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -29,12 +45,12 @@ export default function EventDetails() {
         })
       : "-";
 
-  const formatTime = (t) => (t ? `${t} WIB` : "-");
+  const formatTime = (t) => (t ? `${String(t).slice(0, 5)} WIB` : "-");
 
   const getEventDateTime = (ev) => {
     if (!ev?.date) return null;
-    const date = ev.date.slice(0, 10);
-    const time = ev.time ? ev.time.slice(0, 5) : "23:59";
+    const date = String(ev.date).slice(0, 10);
+    const time = ev.time ? String(ev.time).slice(0, 5) : "23:59";
     const dt = new Date(`${date}T${time}:00`);
     return Number.isNaN(dt.getTime()) ? null : dt;
   };
@@ -49,7 +65,7 @@ export default function EventDetails() {
     : event?.status?.toUpperCase() || "ACTIVE";
 
   const badgeClass = isExpired
-    ? "bg-red-50 border-red-200 text-red-700"
+    ? "bg-rose-50 border-rose-200 text-rose-700"
     : "bg-emerald-50 border-emerald-200 text-emerald-700";
 
   /* =========================
@@ -84,12 +100,9 @@ export default function EventDetails() {
      REGISTER
   ========================= */
   const registerNow = async () => {
-    if (isExpired)
-      return Swal.fire(
-        "Pendaftaran Ditutup",
-        "Event ini sudah berakhir.",
-        "warning"
-      );
+    if (isExpired) {
+      return Swal.fire("Pendaftaran Ditutup", "Event ini sudah berakhir.", "warning");
+    }
 
     const confirm = await Swal.fire({
       title: "Daftar Event?",
@@ -112,7 +125,7 @@ export default function EventDetails() {
       setIsRegistered(true);
       Swal.fire("Berhasil!", "Kamu berhasil mendaftar.", "success");
     } catch {
-      Swal.fire("Gagal", "Kamu sudah terdaftar.", "error");
+      Swal.fire("Gagal", "Kamu sudah terdaftar atau terjadi kesalahan.", "error");
     } finally {
       setSending(false);
     }
@@ -125,13 +138,13 @@ export default function EventDetails() {
     return (
       <div className="min-h-screen bg-slate-50">
         <StudentNavbar />
-        <div className="max-w-5xl mx-auto p-6 animate-pulse space-y-4">
-          <div className="h-8 w-40 bg-slate-200 rounded-xl" />
-          <div className="h-72 bg-slate-200 rounded-3xl" />
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-6 space-y-4">
+          <SkeletonBox className="h-10 w-44" />
+          <SkeletonBox className="h-72 w-full" />
           <div className="grid sm:grid-cols-3 gap-4">
-            <div className="h-20 bg-slate-200 rounded-xl" />
-            <div className="h-20 bg-slate-200 rounded-xl" />
-            <div className="h-20 bg-slate-200 rounded-xl" />
+            <SkeletonBox className="h-20" />
+            <SkeletonBox className="h-20" />
+            <SkeletonBox className="h-20" />
           </div>
         </div>
       </div>
@@ -142,9 +155,15 @@ export default function EventDetails() {
     return (
       <div className="min-h-screen bg-slate-50">
         <StudentNavbar />
-        <p className="text-center py-20 text-slate-500">
-          Event tidak ditemukan.
-        </p>
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-16 text-center">
+          <p className="text-slate-500">Event tidak ditemukan.</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-5 inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+          >
+            ← Kembali
+          </button>
+        </div>
       </div>
     );
   }
@@ -153,31 +172,40 @@ export default function EventDetails() {
     <div className="min-h-screen bg-slate-50">
       <StudentNavbar />
 
-      <div className="max-w-5xl mx-auto p-6 fade-in">
-        {/* BACK */}
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-5 inline-flex items-center gap-2 px-4 py-2 bg-white border rounded-xl shadow-sm hover:bg-slate-100"
-        >
-          ← Kembali
-        </button>
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-6 fade-in">
+        {/* TOP BAR */}
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+          >
+            ← Kembali
+          </button>
 
-        <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
+          <span className={`px-3 py-1.5 text-xs font-bold rounded-full border ${badgeClass}`}>
+            {statusText}
+          </span>
+        </div>
+
+        {/* CARD */}
+        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           {/* POSTER */}
           <div className="relative">
-            <img
-              src={
-                event.poster_url ??
-                "https://source.unsplash.com/1200x400/?seminar,event"
-              }
-              className="w-full h-72 object-cover"
-              alt={event.title}
-            />
-            <span
-              className={`absolute top-5 right-5 px-3 py-1.5 text-xs font-semibold rounded-full border ${badgeClass}`}
-            >
-              {statusText}
-            </span>
+            {event.poster_url ? (
+              <img
+                src={event.poster_url}
+                className="w-full h-72 object-cover"
+                alt={event.title}
+                loading="lazy"
+              />
+            ) : (
+              <div className="h-72 w-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-4xl">📅</div>
+                  <p className="mt-2 text-sm text-slate-500">No Poster</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-6">
@@ -186,9 +214,11 @@ export default function EventDetails() {
               {event.title}
             </h1>
 
-            {event.description && (
-              <p className="mt-2 text-slate-600 leading-relaxed">
-                {event.description}
+            {event.description ? (
+              <p className="mt-2 text-slate-600 leading-relaxed">{event.description}</p>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500 italic">
+                Tidak ada deskripsi.
               </p>
             )}
 
@@ -201,36 +231,38 @@ export default function EventDetails() {
 
             {/* ACTION */}
             {isRegistered ? (
-              <button className="w-full mt-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold">
+              <button
+                type="button"
+                className="w-full mt-6 py-3 rounded-2xl bg-emerald-600 text-white font-bold shadow-sm"
+              >
                 ✓ Kamu Sudah Terdaftar
               </button>
             ) : (
               <button
+                type="button"
                 onClick={registerNow}
                 disabled={sending || isExpired}
-                className={`w-full mt-6 py-3 rounded-xl font-semibold transition ${
+                className={[
+                  "w-full mt-6 py-3 rounded-2xl font-bold shadow-sm transition",
                   isExpired
                     ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
+                    : "bg-blue-600 text-white hover:bg-blue-700",
+                ].join(" ")}
               >
-                {isExpired
-                  ? "Pendaftaran Ditutup"
-                  : sending
-                  ? "Memproses..."
-                  : "Daftar Sekarang"}
+                {isExpired ? "Pendaftaran Ditutup" : sending ? "Memproses..." : "Daftar Sekarang"}
               </button>
             )}
 
             <button
+              type="button"
               onClick={() => navigate(`/event/${id}/participants`)}
-              className="w-full mt-3 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl border"
+              className="w-full mt-3 py-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 font-semibold text-slate-700 transition"
             >
               Lihat Peserta Event
             </button>
 
             {isExpired && !isRegistered && (
-              <p className="mt-3 text-xs text-red-600">
+              <p className="mt-3 text-xs text-rose-600">
                 * Event telah berakhir, pendaftaran otomatis ditutup.
               </p>
             )}
@@ -239,23 +271,12 @@ export default function EventDetails() {
       </div>
 
       <style>{`
-        .fade-in {
-          animation: fadeIn .25s ease-out;
-        }
+        .fade-in { animation: fadeIn .25s ease-out; }
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-    </div>
-  );
-}
-
-function InfoCard({ label, value }) {
-  return (
-    <div className="bg-slate-50 p-4 rounded-2xl border shadow-sm">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 font-semibold text-slate-800">{value}</p>
     </div>
   );
 }

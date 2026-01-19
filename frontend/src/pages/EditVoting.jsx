@@ -1,15 +1,69 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
+import AdminLayout from "../layouts/AdminLayout";
 import api, { updateVoting } from "../services/api";
 import Swal from "sweetalert2";
+
+/* =========================
+   UI ATOMS
+========================= */
+function Field({ label, hint, required, children }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end justify-between gap-2">
+        <label className="text-sm font-semibold text-slate-800">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        {hint && <span className="text-[11px] text-slate-500">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Input(props) {
+  return (
+    <input
+      {...props}
+      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition
+      focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+    />
+  );
+}
+
+function Textarea(props) {
+  return (
+    <textarea
+      {...props}
+      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition
+      focus:border-blue-500 focus:ring-4 focus:ring-blue-100 min-h-[120px]"
+    />
+  );
+}
+
+function PrimaryButton({ loading, children }) {
+  return (
+    <button
+      disabled={loading}
+      type="submit"
+      className={[
+        "w-full rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-sm transition",
+        loading
+          ? "bg-blue-300 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700 active:translate-y-[1px]",
+      ].join(" ")}
+    >
+      {loading ? "Menyimpan..." : children}
+    </button>
+  );
+}
 
 /* =========================
    SKELETON
 ========================= */
 function FormSkeleton() {
   return (
-    <div className="max-w-3xl rounded-3xl border bg-white p-6 shadow-sm animate-pulse">
+    <div className="rounded-3xl border bg-white p-6 shadow-sm animate-pulse">
       <div className="h-4 w-32 bg-slate-200 rounded mb-3" />
       <div className="h-8 w-48 bg-slate-200 rounded mb-6" />
 
@@ -51,17 +105,19 @@ export default function EditVoting() {
       .get(`/votings/${id}`)
       .then((res) => {
         if (!mounted) return;
+
         const v = res.data;
         if (!v) throw new Error();
 
         setForm({
           title: v.title || "",
           description: v.description || "",
-          start_date: v.start_date || "",
-          end_date: v.end_date || "",
+          start_date: (v.start_date || "").slice(0, 10),
+          end_date: (v.end_date || "").slice(0, 10),
           status: v.status || "draft",
         });
 
+        setPoster(null);
         setPreview(v.poster_url || null);
       })
       .catch(() => {
@@ -75,9 +131,9 @@ export default function EditVoting() {
       mounted = false;
       if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     };
-  }, [id]);
+  }, [id, navigate, preview]);
 
-  const updateForm = (key, value) =>
+  const updateFormField = (key, value) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   /* =========================
@@ -92,6 +148,12 @@ export default function EditVoting() {
       return;
     }
 
+    // revoke blob lama kalau ada
+    setPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return prev;
+    });
+
     setPoster(file);
     setPreview(URL.createObjectURL(file));
   };
@@ -101,6 +163,18 @@ export default function EditVoting() {
   ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!form.title.trim()) {
+      return Swal.fire("Validasi", "Judul voting wajib diisi", "warning");
+    }
+
+    if (form.start_date && form.end_date && form.start_date > form.end_date) {
+      return Swal.fire(
+        "Tanggal tidak valid",
+        "Tanggal selesai tidak boleh sebelum tanggal mulai",
+        "error"
+      );
+    }
 
     const confirm = await Swal.fire({
       title: "Simpan Perubahan?",
@@ -127,7 +201,7 @@ export default function EditVoting() {
         icon: "success",
         title: "Berhasil",
         text: "Voting berhasil diperbarui",
-        timer: 1400,
+        timer: 1200,
         showConfirmButton: false,
       });
 
@@ -140,87 +214,74 @@ export default function EditVoting() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Sidebar />
-
-      <div className="md:pl-64">
-        <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-
+    <AdminLayout title="Edit Voting" subtitle="Admin • Voting">
+      <main className="flex justify-center">
+        <div className="w-full max-w-3xl space-y-6">
           {/* HEADER */}
-          <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
+                Voting
+              </p>
+              <h1 className="mt-2 text-2xl font-extrabold text-slate-900">
+                Edit Voting
+              </h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Perbarui detail voting, poster, dan status.
+              </p>
+            </div>
+
             <button
               onClick={() => navigate(-1)}
-              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
+              type="button"
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
             >
               ← Kembali
             </button>
-
-            <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
-              Voting
-            </p>
-            <h1 className="mt-2 text-2xl font-extrabold text-slate-900">
-              Edit Voting
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Perbarui detail voting, poster, dan status.
-            </p>
           </div>
 
           {/* FORM */}
           {loading ? (
             <FormSkeleton />
           ) : (
-            <main className="max-w-3xl rounded-3xl border bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <form onSubmit={handleSubmit} className="space-y-6">
-
-                {/* TITLE */}
-                <div>
-                  <label className="text-sm font-semibold text-slate-700">
-                    Judul Voting <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    className="input"
+                <Field label="Judul Voting" required>
+                  <Input
                     value={form.title}
-                    onChange={(e) => updateForm("title", e.target.value)}
+                    onChange={(e) =>
+                      updateFormField("title", e.target.value)
+                    }
                     required
                   />
-                </div>
+                </Field>
 
-                {/* DESCRIPTION */}
-                <div>
-                  <label className="text-sm font-semibold text-slate-700">
-                    Deskripsi
-                  </label>
-                  <textarea
-                    className="textarea"
+                <Field label="Deskripsi" hint="Opsional">
+                  <Textarea
                     value={form.description}
                     onChange={(e) =>
-                      updateForm("description", e.target.value)
+                      updateFormField("description", e.target.value)
                     }
                   />
-                </div>
+                </Field>
 
-                {/* POSTER */}
-                <div>
-                  <label className="text-sm font-semibold text-slate-700">
-                    Poster Voting
-                  </label>
-
-                  <div className="mt-3 flex items-start gap-4">
-                    <div className="w-36 h-36 rounded-2xl border bg-slate-50 flex items-center justify-center overflow-hidden">
+                <Field label="Poster Voting" hint="Opsional (max 4MB)">
+                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                    <div className="w-40 h-40 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
                       {preview ? (
                         <img
                           src={preview}
+                          alt="Poster"
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-slate-400 text-sm">
+                        <span className="text-sm text-slate-400">
                           No Poster
                         </span>
                       )}
                     </div>
 
-                    <label className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl cursor-pointer font-semibold text-sm hover:bg-blue-100 border">
+                    <label className="cursor-pointer rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
                       Ganti Poster
                       <input
                         type="file"
@@ -230,103 +291,55 @@ export default function EditVoting() {
                       />
                     </label>
                   </div>
-                </div>
+                </Field>
 
-                {/* DATE */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Tanggal Mulai
-                    </label>
-                    <input
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Field label="Tanggal Mulai">
+                    <Input
                       type="date"
-                      className="input"
                       value={form.start_date}
                       onChange={(e) =>
-                        updateForm("start_date", e.target.value)
+                        updateFormField("start_date", e.target.value)
                       }
                     />
-                  </div>
+                  </Field>
 
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Tanggal Selesai
-                    </label>
-                    <input
+                  <Field label="Tanggal Selesai">
+                    <Input
                       type="date"
-                      className="input"
                       value={form.end_date}
                       onChange={(e) =>
-                        updateForm("end_date", e.target.value)
+                        updateFormField("end_date", e.target.value)
                       }
                     />
-                  </div>
+                  </Field>
                 </div>
 
-                {/* STATUS */}
-                <div>
-                  <label className="text-sm font-semibold text-slate-700">
-                    Status
-                  </label>
+                <Field label="Status">
                   <select
-                    className="input bg-white"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none transition
+                    focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     value={form.status}
                     onChange={(e) =>
-                      updateForm("status", e.target.value)
+                      updateFormField("status", e.target.value)
                     }
                   >
                     <option value="draft">Draft</option>
                     <option value="active">Active</option>
                     <option value="closed">Closed</option>
                   </select>
-                </div>
+                </Field>
 
-                {/* SUBMIT */}
-                <button
-                  disabled={saving}
-                  className={`w-full py-3 rounded-xl text-white font-semibold shadow transition ${
-                    saving
-                      ? "bg-blue-300 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  {saving ? "Menyimpan..." : "Simpan Perubahan"}
-                </button>
+                <PrimaryButton loading={saving}>Simpan Perubahan</PrimaryButton>
               </form>
-            </main>
+            </div>
           )}
 
-          <div className="text-center text-xs text-slate-400">
+          <div className="text-center text-xs text-slate-400 pt-4">
             © 2025 UIKA IT Division
           </div>
         </div>
-      </div>
-
-      <style>{`
-        .input {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          padding: 12px;
-          border-radius: 0.9rem;
-          outline: none;
-        }
-        .input:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px #2563eb25;
-        }
-        .textarea {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          padding: 12px;
-          border-radius: 0.9rem;
-          min-height: 120px;
-          outline: none;
-        }
-        .textarea:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px #2563eb25;
-        }
-      `}</style>
-    </div>
+      </main>
+    </AdminLayout>
   );
 }

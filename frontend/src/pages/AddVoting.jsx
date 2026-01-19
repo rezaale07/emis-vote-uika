@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
+import AdminLayout from "../layouts/AdminLayout";
 import { createVoting } from "../services/api";
 import Swal from "sweetalert2";
 
@@ -89,9 +89,6 @@ export default function AddVoting() {
   const updateForm = (key, value) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  /* =========================
-     SUBMIT
-  ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -149,134 +146,120 @@ export default function AddVoting() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Sidebar />
-
-      {/* CONTENT */}
-      <div className="md:pl-64 pt-[56px] md:pt-0">
-        <div className="mx-auto max-w-6xl px-4 py-8">
-          {/* HEADER */}
-          <div className="mb-6">
+    <AdminLayout title="Add Voting" subtitle="Admin • Voting">
+      {/* CENTER WRAPPER */}
+      <div className="w-full max-w-3xl mx-auto space-y-6">
+        {/* HEADER */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <p className="text-[11px] font-bold tracking-[0.25em] text-blue-600 uppercase">
               Admin • Voting
             </p>
-
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-extrabold text-slate-900">
-                  Buat Voting Baru
-                </h1>
-                <p className="mt-1 text-sm text-slate-600">
-                  Buat voting baru untuk proses pemilihan kampus.
-                </p>
-              </div>
-
-              <button
-                onClick={() => navigate(-1)}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
-              >
-                ← Kembali
-              </button>
-            </div>
+            <h1 className="mt-1 text-2xl font-extrabold text-slate-900">
+              Buat Voting Baru
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Buat voting baru untuk proses pemilihan kampus.
+            </p>
           </div>
 
-          {/* FORM CARD */}
-          <div className="max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Field label="Judul Voting" required>
-                <Input
-                  placeholder="Contoh: Pemilihan Ketua BEM"
-                  value={form.title}
-                  onChange={(e) => updateForm("title", e.target.value)}
-                />
-              </Field>
+          <button
+            onClick={() => navigate(-1)}
+            type="button"
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
+          >
+            ← Kembali
+          </button>
+        </div>
 
-              <Field label="Deskripsi" hint="Opsional">
-                <Textarea
-                  placeholder="Deskripsi singkat voting"
-                  value={form.description}
-                  onChange={(e) =>
-                    updateForm("description", e.target.value)
-                  }
-                />
-              </Field>
+        {/* FORM CARD */}
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Field label="Judul Voting" required>
+              <Input
+                placeholder="Contoh: Pemilihan Ketua BEM"
+                value={form.title}
+                onChange={(e) => updateForm("title", e.target.value)}
+              />
+            </Field>
 
-              <Field label="Poster Voting" hint="JPG / PNG (opsional)">
-                <div className="flex flex-col sm:flex-row gap-4 items-start">
-                  <div className="w-40 h-40 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
-                    {preview ? (
-                      <img
-                        src={preview}
-                        alt="Poster"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-sm text-slate-400">
-                        No Poster
-                      </span>
-                    )}
-                  </div>
+            <Field label="Deskripsi" hint="Opsional">
+              <Textarea
+                placeholder="Deskripsi singkat voting"
+                value={form.description}
+                onChange={(e) => updateForm("description", e.target.value)}
+              />
+            </Field>
 
-                  <label className="cursor-pointer rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
-                    Upload Poster
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        setPoster(f);
-                        setPreview(URL.createObjectURL(f));
-                      }}
+            <Field label="Poster Voting" hint="JPG / PNG (opsional)">
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
+                <div className="w-40 h-40 rounded-3xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                  {preview ? (
+                    <img
+                      src={preview}
+                      alt="Poster"
+                      className="w-full h-full object-cover"
                     />
-                  </label>
+                  ) : (
+                    <span className="text-sm text-slate-400">No Poster</span>
+                  )}
                 </div>
-              </Field>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Tanggal Mulai">
-                  <Input
-                    type="date"
-                    value={form.start_date}
-                    onChange={(e) =>
-                      updateForm("start_date", e.target.value)
-                    }
-                  />
-                </Field>
+                <label className="cursor-pointer rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 border border-blue-100 hover:bg-blue-100 transition">
+                  Upload Poster
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
 
-                <Field label="Tanggal Selesai">
-                  <Input
-                    type="date"
-                    value={form.end_date}
-                    onChange={(e) =>
-                      updateForm("end_date", e.target.value)
-                    }
+                      if (preview?.startsWith("blob:"))
+                        URL.revokeObjectURL(preview);
+
+                      setPoster(f);
+                      setPreview(URL.createObjectURL(f));
+                    }}
                   />
-                </Field>
+                </label>
               </div>
+            </Field>
 
-              <Field label="Status">
-                <select
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                  value={form.status}
-                  onChange={(e) =>
-                    updateForm("status", e.target.value)
-                  }
-                >
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="closed">Closed</option>
-                </select>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="Tanggal Mulai">
+                <Input
+                  type="date"
+                  value={form.start_date}
+                  onChange={(e) => updateForm("start_date", e.target.value)}
+                />
               </Field>
 
-              <PrimaryButton loading={saving}>
-                Buat Voting
-              </PrimaryButton>
-            </form>
-          </div>
+              <Field label="Tanggal Selesai">
+                <Input
+                  type="date"
+                  value={form.end_date}
+                  onChange={(e) => updateForm("end_date", e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="Status">
+              <select
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                value={form.status}
+                onChange={(e) => updateForm("status", e.target.value)}
+              >
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
+              </select>
+            </Field>
+
+            <PrimaryButton loading={saving}>Buat Voting</PrimaryButton>
+          </form>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

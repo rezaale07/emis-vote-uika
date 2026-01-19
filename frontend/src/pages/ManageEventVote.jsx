@@ -18,9 +18,9 @@ function EventSkeleton() {
           <div className="h-3 bg-gray-100 rounded w-56" />
         </div>
       </div>
-      <div className="flex gap-2">
-        <div className="w-16 h-8 bg-gray-200 rounded-xl" />
-        <div className="w-16 h-8 bg-gray-200 rounded-xl" />
+      <div className="hidden sm:flex gap-2">
+        <div className="w-20 h-9 bg-gray-200 rounded-xl" />
+        <div className="w-20 h-9 bg-gray-200 rounded-xl" />
       </div>
     </div>
   );
@@ -34,21 +34,23 @@ export default function ManageEventVote() {
   const [voting, setVoting] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true);
+    try {
+      const [votingRes, optionRes] = await Promise.all([
+        api.get(`/votings/${id}`),
+        api.get(`/votings/${id}/options`),
+      ]);
 
-    Promise.all([
-      api.get(`/votings/${id}`),
-      api.get(`/votings/${id}/options`),
-    ])
-      .then(([votingRes, optionRes]) => {
-        setVoting(votingRes.data);
-        setEvents(Array.isArray(optionRes.data) ? optionRes.data : []);
-      })
-      .catch(() =>
-        Swal.fire("Error", "Gagal memuat event voting", "error")
-      )
-      .finally(() => setLoading(false));
+      setVoting(votingRes.data);
+      setEvents(Array.isArray(optionRes.data) ? optionRes.data : []);
+    } catch (e) {
+      Swal.fire("Error", "Gagal memuat event voting", "error");
+      setVoting(null);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function ManageEventVote() {
       confirmButtonText: "Hapus",
       cancelButtonText: "Batal",
       reverseButtons: true,
+      confirmButtonColor: "#dc2626",
     });
 
     if (!confirm.isConfirmed) return;
@@ -94,104 +97,116 @@ export default function ManageEventVote() {
         </div>
 
         {/* MAIN */}
-        <main className="rounded-2xl border bg-white p-6 shadow-sm">
-          {/* HEADER */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-            <div>
-              <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
-                Voting Configuration
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-gray-900">
-                Event dalam Voting
-              </h2>
+        <main className="w-full">
+          {/* Center wrapper biar konsisten dan ketengah */}
+          <div className="mx-auto w-full max-w-5xl">
+            <div className="rounded-2xl border bg-white p-5 md:p-6 shadow-sm">
+              {/* TOP ACTIONS */}
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                <div>
+                  <button
+                    onClick={() => navigate(-1)}
+                    className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
+                    type="button"
+                  >
+                    ← Kembali
+                  </button>
 
-              {voting && (
-                <p className="mt-1 text-sm text-gray-500">
-                  <span className="font-medium text-gray-700">
-                    {voting.title}
-                  </span>{" "}
-                  — {events.length} event terdaftar
-                </p>
-              )}
-            </div>
+                  <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
+                    Voting Configuration
+                  </p>
 
-            <button
-              onClick={() =>
-                navigate(`/admin/voting/${id}/event-vote/add`)
-              }
-              className="rounded-xl bg-blue-600 text-white px-4 py-2.5 text-sm font-medium shadow hover:bg-blue-700 transition"
-            >
-              + Tambah Event
-            </button>
-          </div>
+                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-gray-900">
+                    Event dalam Voting
+                  </h2>
 
-          {/* CONTENT */}
-          {loading ? (
-            <div className="space-y-4">
-              <EventSkeleton />
-              <EventSkeleton />
-            </div>
-          ) : events.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-gray-50 py-14 text-center">
-              <p className="text-gray-500 italic">
-                Belum ada event untuk voting ini
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {events.map((e) => (
-                <div
-                  key={e.id}
-                  className="rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  {voting && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      <span className="font-medium text-gray-700">
+                        {voting.title}
+                      </span>{" "}
+                      — {events.length} event terdaftar
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => navigate(`/admin/voting/${id}/event-vote/add`)}
+                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 text-white px-4 py-2.5 text-sm font-semibold shadow hover:bg-blue-700 transition"
                 >
-                  {/* LEFT */}
-                  <div className="flex items-center gap-4 min-w-0">
-                    {e.photo_url ? (
-                      <img
-                        src={e.photo_url}
-                        alt={e.name}
-                        className="w-16 h-16 rounded-xl object-cover border bg-gray-100"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-xl border bg-gray-50 flex items-center justify-center text-xl">
-                        🎫
-                      </div>
-                    )}
+                  + Tambah Event
+                </button>
+              </div>
 
-                    <div className="min-w-0">
-                      <div className="font-semibold text-gray-900 truncate">
-                        {e.name}
+              {/* CONTENT */}
+              {loading ? (
+                <div className="space-y-4">
+                  <EventSkeleton />
+                  <EventSkeleton />
+                </div>
+              ) : events.length === 0 ? (
+                <div className="rounded-2xl border border-dashed bg-gray-50 py-14 text-center">
+                  <p className="text-gray-500 italic">
+                    Belum ada event untuk voting ini
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {events.map((e) => (
+                    <div
+                      key={e.id}
+                      className="rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    >
+                      {/* LEFT */}
+                      <div className="flex items-center gap-4 min-w-0">
+                        {e.photo_url ? (
+                          <img
+                            src={e.photo_url}
+                            alt={e.name}
+                            className="w-16 h-16 rounded-xl object-cover border bg-gray-100"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-xl border bg-gray-50 flex items-center justify-center text-xl">
+                            🎫
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <div className="font-semibold text-gray-900 truncate">
+                            {e.name}
+                          </div>
+                          <div className="text-sm text-gray-500 line-clamp-2">
+                            {e.bio || "Tanpa deskripsi event"}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500 line-clamp-2">
-                        {e.bio || "Tanpa deskripsi event"}
+
+                      {/* ACTIONS */}
+                      <div className="flex flex-wrap gap-2 justify-start md:justify-end">
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/admin/voting/${id}/event-vote/${e.id}/edit`
+                            )
+                          }
+                          className="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-50 transition"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(e.id)}
+                          className="rounded-xl border border-red-300 text-red-600 px-4 py-2 text-sm font-medium hover:bg-red-50 transition"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
-                  </div>
-
-                  {/* ACTIONS */}
-                  <div className="flex gap-2 justify-start md:justify-end">
-                    <button
-                      onClick={() =>
-                        navigate(
-                          `/admin/voting/${id}/event-vote/${e.id}/edit`
-                        )
-                      }
-                      className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(e.id)}
-                      className="rounded-xl border border-red-300 text-red-600 px-4 py-2 text-sm hover:bg-red-50 transition"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          </div>
         </main>
       </div>
 
