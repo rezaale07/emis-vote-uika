@@ -21,9 +21,8 @@ class Event extends Model
     ];
 
     /**
-     * ⛔ PENTING
-     * JANGAN cast date/time ke Carbon otomatis
-     * BIAR FRONTEND TERIMA STRING MURNI
+     * Jangan cast ke Carbon
+     * biar frontend terima string
      */
     protected $casts = [
         'date' => 'string',

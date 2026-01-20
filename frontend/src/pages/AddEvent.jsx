@@ -171,42 +171,34 @@ export default function AddEvent() {
       return Swal.fire("Wajib diisi", "Jam event wajib diisi (HH:MM).", "warning");
     }
 
+    // Jika sudah expired, status otomatis menjadi expired
     if (expiredByDateTime) {
-      const warn = await Swal.fire({
-        icon: "warning",
-        title: "Waktu event sudah lewat",
-        text: "Jika disimpan, status akan otomatis menjadi EXPIRED. Lanjutkan?",
-        showCancelButton: true,
-        confirmButtonText: "Lanjut",
-        cancelButtonText: "Batal",
-        confirmButtonColor: "#dc2626",
-      });
-      if (!warn.isConfirmed) return;
-    } else {
-      const confirm = await Swal.fire({
-        title: "Buat Event?",
-        text: "Pastikan data sudah benar.",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Buat",
-        cancelButtonText: "Batal",
-        confirmButtonColor: "#2563eb",
-      });
-      if (!confirm.isConfirmed) return;
+      form.status = "expired";  // Update status menjadi expired
     }
+
+    const confirm = await Swal.fire({
+      title: expiredByDateTime ? "Event sudah lewat" : "Buat Event?",
+      text: expiredByDateTime
+        ? "Status akan otomatis menjadi EXPIRED."
+        : "Pastikan data sudah benar.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Buat",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#2563eb",
+    });
+    if (!confirm.isConfirmed) return;
 
     setSaving(true);
 
     try {
       const fd = new FormData();
-      const finalStatus = expiredByDateTime ? "expired" : form.status;
-
       fd.append("title", form.title.trim());
       fd.append("description", form.description || "");
       fd.append("date", form.date);
       fd.append("time", form.time);
       fd.append("location", form.location || "");
-      fd.append("status", finalStatus);
+      fd.append("status", form.status);  // Gunakan status yang sudah diatur
       if (poster) fd.append("poster", poster);
 
       await api.post("/events", fd);

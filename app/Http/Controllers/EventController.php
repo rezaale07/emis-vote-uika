@@ -9,14 +9,37 @@ use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
-    public function index()
+    /**
+     * 🔁 Refresh status event (AUTO EXPIRED)
+     */
+    private function refreshEventStatus(Event $event)
     {
-        // Biar konsisten, return data event langsung plus poster_url
-        return response()->json(
-            Event::orderBy('id', 'desc')->get()
-        );
+        if (!$event->date || !$event->time) return;
+
+        $eventDateTime = Carbon::parse($event->date . ' ' . $event->time);
+
+        if ($eventDateTime->isPast() && $event->status !== 'expired') {
+            $event->update(['status' => 'expired']);
+        }
     }
 
+    /**
+     * LIST EVENT
+     */
+    public function index()
+    {
+        $events = Event::orderBy('id', 'desc')->get();
+
+        foreach ($events as $event) {
+            $this->refreshEventStatus($event);
+        }
+
+        return response()->json($events);
+    }
+
+    /**
+     * DETAIL EVENT
+     */
     public function show($id)
     {
         $event = Event::find($id);
@@ -24,6 +47,8 @@ class EventController extends Controller
         if (!$event) {
             return response()->json(['message' => 'Event tidak ditemukan'], 404);
         }
+
+        $this->refreshEventStatus($event);
 
         return response()->json([
             'id'          => $event->id,
@@ -37,6 +62,9 @@ class EventController extends Controller
         ]);
     }
 
+    /**
+     * CREATE EVENT
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -45,18 +73,16 @@ class EventController extends Controller
             'date'        => 'required|date',
             'time'        => 'required|date_format:H:i',
             'location'    => 'required|string|max:255',
-            'status'      => 'nullable|in:active,expired',
             'poster'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ]);
 
-        // Auto status
+        // AUTO STATUS
         $eventDateTime = Carbon::parse($data['date'] . ' ' . $data['time']);
-        $status = $eventDateTime->isPast() ? 'expired' : ($data['status'] ?? 'active');
+        $status = $eventDateTime->isPast() ? 'expired' : 'active';
 
-        // Upload poster (optional)
+        // Upload poster
         $posterUrl = null;
         if ($request->hasFile('poster')) {
-            // pastikan kamu sudah: php artisan storage:link
             $path = $request->file('poster')->store('events', 'public');
             $posterUrl = asset('storage/' . $path);
         }
@@ -77,6 +103,9 @@ class EventController extends Controller
         ], 201);
     }
 
+    /**
+     * UPDATE EVENT
+     */
     public function update(Request $request, $id)
     {
         $event = Event::findOrFail($id);
@@ -87,26 +116,22 @@ class EventController extends Controller
             'date'        => 'required|date',
             'time'        => 'required|date_format:H:i',
             'location'    => 'required|string|max:255',
-            'status'      => 'required|in:active,expired',
             'poster'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ]);
 
-        // Auto status (paksa expired kalau sudah lewat)
+        // AUTO STATUS (FORCED)
         $eventDateTime = Carbon::parse($data['date'] . ' ' . $data['time']);
-        $status = $eventDateTime->isPast() ? 'expired' : $data['status'];
+        $status = $eventDateTime->isPast() ? 'expired' : 'active';
 
-        // Default poster tetap yang lama
+        // Poster lama
         $posterUrl = $event->poster_url;
 
-        // Kalau upload poster baru → hapus lama → simpan baru
         if ($request->hasFile('poster')) {
 
-            // Hapus poster lama dengan cara aman:
-            // karena kita simpan URL, ambil relative path setelah "/storage/"
             if (!empty($event->poster_url)) {
-                $relative = parse_url($event->poster_url, PHP_URL_PATH); // ex: /storage/events/xxx.webp
+                $relative = parse_url($event->poster_url, PHP_URL_PATH);
                 if ($relative && str_starts_with($relative, '/storage/')) {
-                    $oldPath = substr($relative, strlen('/storage/')); // events/xxx.webp
+                    $oldPath = substr($relative, strlen('/storage/'));
                     Storage::disk('public')->delete($oldPath);
                 }
             }
@@ -131,6 +156,9 @@ class EventController extends Controller
         ]);
     }
 
+    /**
+     * DELETE EVENT
+     */
     public function destroy($id)
     {
         $event = Event::findOrFail($id);

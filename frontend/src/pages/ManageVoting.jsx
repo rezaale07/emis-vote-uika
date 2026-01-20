@@ -185,13 +185,13 @@ export default function ManageVoting() {
                         <span className={s.cls}>{s.label}</span>
                       </div>
 
-                      <div className="mt-2 flex items-center gap-3 flex-wrap text-xs text-gray-500">
-                        {typeof v.total_votes !== "undefined" && (
-                          <span className="px-3 py-1 rounded-full bg-gray-50 border">
+                      {typeof v.total_votes !== "undefined" && (
+                        <div className="mt-2">
+                          <span className="px-3 py-1 rounded-full bg-gray-50 border text-xs text-gray-600">
                             {v.total_votes} total votes
                           </span>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -213,8 +213,11 @@ export default function ManageVoting() {
                       Edit
                     </button>
 
+                    {/* ✅ FIX FINAL — RESULTS */}
                     <button
-                      onClick={() => navigate(`/admin/results/${v.id}`)}
+                      onClick={() =>
+                        navigate(`/admin/voting/${v.id}/results`)
+                      }
                       className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition"
                     >
                       Results
@@ -233,14 +236,6 @@ export default function ManageVoting() {
           </ul>
         )}
       </main>
-
-      <style>{`
-        .fade-in { animation: fadeIn .25s ease-out; }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </AdminLayout>
   );
 }
