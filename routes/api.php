@@ -20,15 +20,17 @@ use App\Http\Controllers\VoteOptionController;
 // ========================
 // API CHECK
 // ========================
-Route::get('/ping', fn() => response()->json(['message' => 'API aktif!']));
-
+Route::get('/ping', fn () => response()->json(['message' => 'API aktif!']));
 
 // ========================
 // AUTH
 // ========================
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/students/register', [AuthController::class, 'registerStudent']);
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:5,1');
 
+Route::post('/students/register', [AuthController::class, 'registerStudent']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // ========================
 // EVENTS CRUD
@@ -39,9 +41,7 @@ Route::get('/events/{id}', [EventController::class, 'show']);
 Route::put('/events/{id}', [EventController::class, 'update']);
 Route::delete('/events/{id}', [EventController::class, 'destroy']);
 
-// Event participants
 Route::get('/events/{id}/participants', [RegistrationController::class, 'participants']);
-
 
 // ========================
 // REGISTRATIONS
@@ -50,16 +50,14 @@ Route::get('/registrations', [RegistrationController::class, 'index']);
 Route::post('/registrations', [RegistrationController::class, 'store']);
 Route::get('/registrations/check', [RegistrationController::class, 'check']);
 
-
 // ========================
 // VOTING CRUD
 // ========================
 Route::get('/votings', [VotingController::class, 'index']);
-Route::post('/votings', [VotingController::class, 'store']);       // Create + Upload Image
+Route::post('/votings', [VotingController::class, 'store']);
 Route::get('/votings/{id}', [VotingController::class, 'show']);
-Route::put('/votings/{id}', [VotingController::class, 'update']);  // Update + Upload Image
+Route::put('/votings/{id}', [VotingController::class, 'update']);
 Route::delete('/votings/{id}', [VotingController::class, 'destroy']);
-
 
 // ========================
 // VOTE OPTIONS
@@ -69,27 +67,23 @@ Route::post('/votings/{id}/options', [VoteOptionController::class, 'store']);
 Route::put('/votings/{id}/options/{optionId}', [VoteOptionController::class, 'update']);
 Route::delete('/votings/{id}/options/{optionId}', [VoteOptionController::class, 'destroy']);
 
-
 // ========================
 // SUBMIT VOTE
 // ========================
 Route::post('/votes', [VoteController::class, 'store']);
-
-// ========================
-// CHECK USER VOTE
-// ========================
 Route::get('/votes/check', [VoteController::class, 'check']);
-
-
 
 // ========================
 // STUDENTS CRUD
 // ========================
-Route::get('/students', [StudentController::class,'index']);
-Route::post('/students', [StudentController::class,'store']);
-Route::get('/students/{id}', [StudentController::class,'show']);
-Route::put('/students/{id}', [StudentController::class,'update']);
-Route::delete('/students/{id}', [StudentController::class,'destroy']);
+Route::get('/students', [StudentController::class, 'index']);
+Route::post('/students', [StudentController::class, 'store']);
+Route::get('/students/{id}', [StudentController::class, 'show']);
+Route::put('/students/{id}', [StudentController::class, 'update']);
+Route::delete('/students/{id}', [StudentController::class, 'destroy']);
+
+// 🔥 IMPORT EXCEL MAHASISWA
+Route::post('/students/import', [StudentController::class, 'import']);
 
 
 // ========================
@@ -98,8 +92,10 @@ Route::delete('/students/{id}', [StudentController::class,'destroy']);
 Route::get('/users/{id}/history', [RegistrationController::class, 'history']);
 Route::post('/students/{id}/update-profile', [StudentController::class, 'updateProfile']);
 
-// REPORTS
+// ❌ REPORTS DINONAKTIFKAN SEMENTARA
+/*
 Route::get('/reports/summary', [ReportController::class, 'summary']);
 Route::get('/reports/event-participation', [ReportController::class, 'eventParticipation']);
 Route::get('/reports/voting-participation', [ReportController::class, 'votingParticipation']);
 Route::get('/reports/monthly-trends', [ReportController::class, 'monthlyTrends']);
+*/

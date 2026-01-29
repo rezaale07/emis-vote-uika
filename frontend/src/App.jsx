@@ -5,6 +5,9 @@ import { AuthContext } from "./context/AuthContext";
 // AUTH
 import Login from "./pages/Login";
 import Welcome from "./pages/Welcome";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
 
 // ADMIN
 import AdminDashboard from "./pages/AdminDashboard";
@@ -66,6 +69,11 @@ export default function App() {
         }
       />
 
+      {/* ========= FORGOT PASSWORD (PUBLIC) ========= */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+
       {/* ================= ADMIN ================= */}
       <Route
         path="/admin"
@@ -85,7 +93,7 @@ export default function App() {
       <Route path="/admin/voting/add" element={<RequireRole role="admin"><AddVoting /></RequireRole>} />
       <Route path="/admin/voting/:id/edit" element={<RequireRole role="admin"><EditVoting /></RequireRole>} />
 
-      {/* ✅ FINAL FIX — ROUTE RESULT */}
+      {/* ✅ ADMIN VOTING RESULTS */}
       <Route
         path="/admin/voting/:id/results"
         element={

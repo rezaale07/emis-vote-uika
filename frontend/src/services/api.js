@@ -1,26 +1,45 @@
 import axios from "axios";
 
 // ========================
-// 🔧 SETUP AXIOS CLIENT
+// 🔧 AXIOS INSTANCE
 // ========================
 const api = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
-  withCredentials: false,
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  },
 });
 
-// Token auto inject
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// ========================
+// 🔐 AUTO TOKEN (SANCTUM)
+// ========================
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // ========================
 // 🔐 AUTH
 // ========================
-export const loginUser = (payload) => api.post("/login", payload);
+export const loginUser = (payload) =>
+  api.post("/login", payload);
+
+// 🔥 FIX FINAL
+export const forgotPassword = (payload) =>
+  api.post("/forgot-password", {
+    login: payload.login,
+  });
+
+// 🔥 FIX FINAL
+export const resetPassword = (payload) =>
+  api.post("/reset-password", payload);
 
 // ========================
 // 🎪 EVENTS
@@ -38,7 +57,8 @@ export const updateEvent = (id, payload) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-export const deleteEvent = (id) => api.delete(`/events/${id}`);
+export const deleteEvent = (id) =>
+  api.delete(`/events/${id}`);
 
 export const getEventParticipants = (id) =>
   api.get(`/events/${id}/participants`);
@@ -46,10 +66,13 @@ export const getEventParticipants = (id) =>
 // ========================
 // 📋 REGISTRATIONS
 // ========================
-export const registerEvent = (payload) => api.post("/registrations", payload);
+export const registerEvent = (payload) =>
+  api.post("/registrations", payload);
 
 export const checkRegistration = (event_id, user_id) =>
-  api.get("/registrations/check", { params: { event_id, user_id } });
+  api.get("/registrations/check", {
+    params: { event_id, user_id },
+  });
 
 // ========================
 // 🗳️ VOTING
@@ -67,26 +90,19 @@ export const updateVoting = (id, payload) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-export const deleteVoting = (id) => api.delete(`/votings/${id}`);
-
-
-// ================================
-// ✅ CEK USER SUDAH VOTE (AMAN)
-// ================================
-export const checkUserVote = async (voting_id, user_id) => {
-  try {
-    const res = await api.get("/votes/check", {
-      params: { voting_id, user_id },
-    });
-    return res; // format: { voted: true/false, option_id: X }
-  } catch (err) {
-    console.warn("⚠️ Endpoint /votes/check belum tersedia di backend.");
-    return { data: { voted: false } };
-  }
-};
+export const deleteVoting = (id) =>
+  api.delete(`/votings/${id}`);
 
 // ========================
-// VOTE OPTIONS
+// ✅ CEK USER SUDAH VOTE
+// ========================
+export const checkUserVote = (voting_id, user_id) =>
+  api.get("/votes/check", {
+    params: { voting_id, user_id },
+  });
+
+// ========================
+// 🧩 VOTE OPTIONS
 // ========================
 export const getVoteOptions = (votingId) =>
   api.get(`/votings/${votingId}/options`);
@@ -101,23 +117,20 @@ export const deleteVoteOption = (votingId, optionId) =>
   api.delete(`/votings/${votingId}/options/${optionId}`);
 
 // ========================
-// SUBMIT VOTE
+// 🗳️ SUBMIT VOTE
 // ========================
 export const submitVote = (payload) =>
-  api.post("/votes", payload).catch((err) => {
-    throw err;
-  });
-
-  
+  api.post("/votes", payload);
 
 // ========================
 // 🎓 STUDENTS CRUD
 // ========================
 export const getStudents = () => api.get("/students");
+export const getStudentById = (id) => api.get(`/students/${id}`);
 export const createStudent = (payload) => api.post("/students", payload);
 export const updateStudent = (id, payload) =>
   api.put(`/students/${id}`, payload);
-export const deleteStudent = (id) => api.delete(`/students/${id}`);
-export const getStudentById = (id) => api.get(`/students/${id}`);
+export const deleteStudent = (id) =>
+  api.delete(`/students/${id}`);
 
 export default api;

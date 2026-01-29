@@ -10,18 +10,10 @@ import "sweetalert2/dist/sweetalert2.min.css";
 function SkeletonRow() {
   return (
     <tr className="animate-pulse border-b">
-      <td className="py-4 px-4">
-        <div className="h-4 w-40 bg-gray-200 rounded" />
-      </td>
-      <td className="py-4 px-4">
-        <div className="h-4 w-28 bg-gray-200 rounded" />
-      </td>
-      <td className="py-4 px-4">
-        <div className="h-4 w-40 bg-gray-200 rounded" />
-      </td>
-      <td className="py-4 px-4">
-        <div className="h-8 w-24 bg-gray-200 rounded-xl" />
-      </td>
+      <td className="py-4 px-4"><div className="h-4 w-40 bg-gray-200 rounded" /></td>
+      <td className="py-4 px-4"><div className="h-4 w-28 bg-gray-200 rounded" /></td>
+      <td className="py-4 px-4"><div className="h-4 w-40 bg-gray-200 rounded" /></td>
+      <td className="py-4 px-4"><div className="h-8 w-24 bg-gray-200 rounded-xl" /></td>
     </tr>
   );
 }
@@ -32,7 +24,10 @@ export default function ManageStudents() {
 
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [excelFile, setExcelFile] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -51,7 +46,6 @@ export default function ManageStudents() {
       setStudents(res.data || []);
     } catch {
       Swal.fire("Error", "Gagal memuat data mahasiswa", "error");
-      setStudents([]);
     } finally {
       setLoading(false);
     }
@@ -66,11 +60,7 @@ export default function ManageStudents() {
   ========================= */
   const addStudent = async () => {
     if (!form.name || !form.username || !form.password) {
-      return Swal.fire(
-        "Validasi",
-        "Nama, NPM, dan password wajib diisi",
-        "warning"
-      );
+      return Swal.fire("Validasi", "Nama, NPM, dan password wajib diisi", "warning");
     }
 
     try {
@@ -121,9 +111,48 @@ export default function ManageStudents() {
     }
   };
 
+  /* =========================
+     IMPORT EXCEL
+  ========================= */
+  const importExcel = async () => {
+    if (!excelFile) {
+      return Swal.fire("Validasi", "Silakan pilih file Excel (.xlsx)", "warning");
+    }
+
+    const formData = new FormData();
+    formData.append("file", excelFile);
+
+    try {
+      const res = await api.post("/students/import", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setShowImport(false);
+      setExcelFile(null);
+      loadData();
+
+      Swal.fire({
+        title: "Import Selesai",
+        html: `
+          <p>✅ Berhasil: <b>${res.data.success}</b></p>
+          <p>❌ Gagal: <b>${res.data.failed}</b></p>
+          ${
+            res.data.errors.length
+              ? `<hr><pre style="text-align:left">${res.data.errors.join("\n")}</pre>`
+              : ""
+          }
+        `,
+        icon: "success",
+      });
+    } catch {
+      Swal.fire("Error", "Gagal import data", "error");
+    }
+  };
+
   return (
     <AdminLayout title="Manage Students" subtitle="Kelola data mahasiswa">
       <main className="bg-white rounded-2xl border shadow-sm p-6">
+
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
@@ -135,15 +164,24 @@ export default function ManageStudents() {
             </h2>
           </div>
 
-          <button
-            onClick={() => {
-              setForm({ name: "", username: "", email: "", password: "" });
-              setShowAdd(true);
-            }}
-            className="rounded-xl bg-blue-600 text-white px-4 py-2.5 text-sm font-semibold shadow hover:bg-blue-700"
-          >
-            + Tambah Mahasiswa
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowImport(true)}
+              className="rounded-xl border px-4 py-2.5 text-sm font-semibold hover:bg-gray-50"
+            >
+              Import Excel
+            </button>
+
+            <button
+              onClick={() => {
+                setForm({ name: "", username: "", email: "", password: "" });
+                setShowAdd(true);
+              }}
+              className="rounded-xl bg-blue-600 text-white px-4 py-2.5 text-sm font-semibold shadow hover:bg-blue-700"
+            >
+              + Tambah Mahasiswa
+            </button>
+          </div>
         </div>
 
         {/* ===== DESKTOP TABLE ===== */}
@@ -259,64 +297,41 @@ export default function ManageStudents() {
         </div>
       </main>
 
-      {/* MODAL */}
+      {/* MODAL ADD */}
       {showAdd && (
-        <Modal
-          title="Tambah Mahasiswa"
-          onClose={() => setShowAdd(false)}
-        >
-          <FormInput
-            label="Nama"
-            value={form.name}
-            onChange={(v) => updateForm("name", v)}
-          />
-          <FormInput
-            label="NPM"
-            value={form.username}
-            onChange={(v) => updateForm("username", v)}
-          />
-          <FormInput
-            label="Email"
-            value={form.email}
-            onChange={(v) => updateForm("email", v)}
-          />
-          <FormInput
-            label="Password"
-            type="password"
-            value={form.password}
-            onChange={(v) => updateForm("password", v)}
-          />
+        <Modal title="Tambah Mahasiswa" onClose={() => setShowAdd(false)}>
+          <FormInput label="Nama" value={form.name} onChange={(v) => updateForm("name", v)} />
+          <FormInput label="NPM" value={form.username} onChange={(v) => updateForm("username", v)} />
+          <FormInput label="Email" value={form.email} onChange={(v) => updateForm("email", v)} />
+          <FormInput label="Password" type="password" value={form.password} onChange={(v) => updateForm("password", v)} />
           <PrimaryButton onClick={addStudent} text="Tambah Mahasiswa" />
         </Modal>
       )}
 
+      {/* MODAL EDIT */}
       {showEdit && (
-        <Modal
-          title="Edit Mahasiswa"
-          onClose={() => setShowEdit(false)}
-        >
-          <FormInput
-            label="Nama"
-            value={form.name}
-            onChange={(v) => updateForm("name", v)}
-          />
-          <FormInput
-            label="NPM"
-            value={form.username}
-            onChange={(v) => updateForm("username", v)}
-          />
-          <FormInput
-            label="Email"
-            value={form.email}
-            onChange={(v) => updateForm("email", v)}
-          />
-          <FormInput
-            label="Password (opsional)"
-            type="password"
-            value={form.password}
-            onChange={(v) => updateForm("password", v)}
-          />
+        <Modal title="Edit Mahasiswa" onClose={() => setShowEdit(false)}>
+          <FormInput label="Nama" value={form.name} onChange={(v) => updateForm("name", v)} />
+          <FormInput label="NPM" value={form.username} onChange={(v) => updateForm("username", v)} />
+          <FormInput label="Email" value={form.email} onChange={(v) => updateForm("email", v)} />
+          <FormInput label="Password (opsional)" type="password" value={form.password} onChange={(v) => updateForm("password", v)} />
           <PrimaryButton onClick={saveEdit} text="Simpan Perubahan" />
+        </Modal>
+      )}
+
+      {/* MODAL IMPORT */}
+      {showImport && (
+        <Modal title="Import Mahasiswa (Excel)" onClose={() => setShowImport(false)}>
+          <input
+            type="file"
+            accept=".xlsx"
+            onChange={(e) => setExcelFile(e.target.files[0])}
+            className="w-full border rounded-xl p-2.5"
+          />
+          <p className="text-xs text-gray-500">
+            Format: nama | npm | email 
+          </p>
+          <PrimaryButton onClick={importExcel} text="Import Sekarang" />
         </Modal>
       )}
     </AdminLayout>

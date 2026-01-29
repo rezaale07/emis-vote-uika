@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\StudentsImport;
 
 class StudentController extends Controller
 {
@@ -16,7 +18,7 @@ class StudentController extends Controller
         return response()->json($students);
     }
 
-    // Tambah mahasiswa (admin)
+    // Tambah mahasiswa (manual oleh admin)
     public function store(Request $request)
     {
         $request->validate([
@@ -71,7 +73,7 @@ class StudentController extends Controller
         ]);
     }
 
-    // ✔ FINAL : Update profil mahasiswa (avatar + password optional)
+    // Update profil mahasiswa (avatar + password optional)
     public function updateProfile(Request $request, $id)
     {
         $student = User::findOrFail($id);
@@ -84,30 +86,21 @@ class StudentController extends Controller
             'avatar'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        // ===============================
-        // 🔥 AVATAR HANDLING (FINAL FIX)
-        // ===============================
+        // Avatar handling
         if ($request->hasFile('avatar')) {
-
-            // Hapus avatar lama jika ada
             if ($student->avatar) {
                 $oldFile = str_replace(url('/storage') . '/', '', $student->avatar);
                 Storage::disk('public')->delete($oldFile);
             }
 
-            // Simpan avatar baru
             $path = $request->file('avatar')->store('avatars', 'public');
-
-            // URL lengkap agar React bisa akses
             $student->avatar = url('storage/' . $path);
         }
 
-        // Data dasar
         $student->name     = $validated['name'];
         $student->username = $validated['username'];
         $student->email    = $validated['email'] ?? null;
 
-        // Password opsional
         if (!empty($validated['password'])) {
             $student->password = Hash::make($validated['password']);
         }
@@ -116,18 +109,32 @@ class StudentController extends Controller
 
         return response()->json([
             'message' => 'Profil berhasil diperbarui!',
-            'user'    => [
-                'id'       => $student->id,
-                'name'     => $student->name,
-                'email'    => $student->email,
-                'username' => $student->username,
-                'role'     => $student->role,
-                'avatar'   => $student->avatar,
-            ],
+            'user'    => $student,
         ]);
     }
 
-    // Hapus akun
+    // 🔥 IMPORT EXCEL (AKUN + MAHASISWA SEKALIGUS)
+   public function import(Request $request)
+{
+    $request->validate([
+        'file' => 'required|file|mimes:xlsx',
+    ]);
+
+    $rows = Excel::toCollection(null, $request->file('file'))[0];
+
+    $import = new StudentsImport();
+    $import->handle($rows);
+
+    return response()->json([
+        'message' => 'Import selesai',
+        'success' => $import->success,
+        'failed'  => $import->failed,
+        'errors'  => $import->errors,
+    ]);
+}
+
+
+    // Hapus akun mahasiswa
     public function destroy($id)
     {
         User::where('id', $id)->delete();
