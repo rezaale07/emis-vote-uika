@@ -6,8 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\StudentsImport;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
 
 class StudentController extends Controller
 {
@@ -113,25 +113,70 @@ class StudentController extends Controller
         ]);
     }
 
-    // 🔥 IMPORT EXCEL (AKUN + MAHASISWA SEKALIGUS)
-   public function import(Request $request)
+    // 🔥 IMPORT EXCEL (Laravel 12 SAFE)
+public function import(Request $request)
 {
     $request->validate([
         'file' => 'required|file|mimes:xlsx',
     ]);
 
-    $rows = Excel::toCollection(null, $request->file('file'))[0];
+    $spreadsheet = IOFactory::load(
+        $request->file('file')->getPathname()
+    );
 
-    $import = new StudentsImport();
-    $import->handle($rows);
+    $rows = $spreadsheet
+        ->getActiveSheet()
+        ->toArray();
+
+    $success = 0;
+    $failed  = 0;
+    $errors  = [];
+
+    foreach ($rows as $index => $row) {
+        // skip header
+        if ($index === 0) continue;
+
+        $nama      = trim($row[0] ?? '');
+        $npm       = trim($row[1] ?? '');
+        $email     = trim($row[2] ?? '');
+        $fakultas  = trim($row[3] ?? '');
+        $prodi     = trim($row[4] ?? '');
+        $angkatan  = trim($row[5] ?? '');
+
+        if ($nama === '' || $npm === '') {
+            $failed++;
+            $errors[] = "Baris " . ($index + 1) . ": nama / npm kosong";
+            continue;
+        }
+
+        if (User::where('username', $npm)->exists()) {
+            $failed++;
+            $errors[] = "Baris " . ($index + 1) . ": npm sudah terdaftar";
+            continue;
+        }
+
+        User::create([
+            'name'     => $nama,
+            'username' => $npm,
+            'email'    => $email ?: null,
+            'password' => Hash::make($npm),
+            'role'     => 'student',
+            'fakultas' => $fakultas ?: null,
+            'prodi'    => $prodi ?: null,
+            'angkatan' => $angkatan ?: null,
+        ]);
+
+        $success++;
+    }
 
     return response()->json([
         'message' => 'Import selesai',
-        'success' => $import->success,
-        'failed'  => $import->failed,
-        'errors'  => $import->errors,
+        'success' => $success,
+        'failed'  => $failed,
+        'errors'  => $errors,
     ]);
 }
+
 
 
     // Hapus akun mahasiswa
