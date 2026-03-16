@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import Sidebar from "../components/Sidebar";
+import AdminLayout from "../layouts/AdminLayout";
 import api from "../services/api";
 import Swal from "sweetalert2";
 
@@ -44,7 +43,7 @@ export default function ManageEventVote() {
 
       setVoting(votingRes.data);
       setEvents(Array.isArray(optionRes.data) ? optionRes.data : []);
-    } catch (e) {
+    } catch {
       Swal.fire("Error", "Gagal memuat event voting", "error");
       setVoting(null);
       setEvents([]);
@@ -65,7 +64,6 @@ export default function ManageEventVote() {
       showCancelButton: true,
       confirmButtonText: "Hapus",
       cancelButtonText: "Batal",
-      reverseButtons: true,
       confirmButtonColor: "#dc2626",
     });
 
@@ -87,136 +85,115 @@ export default function ManageEventVote() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 fade-in">
-      <Navbar title="Manage Event Vote" />
+    <AdminLayout
+      title="Manage Voting Event"
+      subtitle="Kelola sesi voting event kampus"
+    >
+      <main className="rounded-2xl border bg-white p-6 shadow-sm">
+        {/* HEADER */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+          <div>
+            <button
+              onClick={() => navigate(-1)}
+              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
+              type="button"
+            >
+              ← Kembali
+            </button>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 grid md:grid-cols-[16rem_1fr] gap-6">
-        {/* SIDEBAR */}
-        <div className="hidden md:block">
-          <Sidebar />
+            <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
+              EMIS-Vote UIKA
+            </p>
+
+            <h2 className="mt-2 text-2xl md:text-3xl font-bold text-gray-900">
+              Event dalam Voting
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Kelola event yang tersedia dalam sesi voting ini.
+            </p>
+
+            {voting && (
+              <p className="mt-1 text-sm text-gray-400">
+                {events.length} event terdaftar
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={() =>
+              navigate(`/admin/voting/${id}/event-vote/add`)
+            }
+            className="inline-flex items-center justify-center rounded-xl bg-blue-600 text-white px-4 py-2.5 text-sm font-medium shadow hover:bg-blue-700 transition"
+          >
+            + Tambah Event
+          </button>
         </div>
 
-        {/* MAIN */}
-        <main className="w-full">
-          {/* Center wrapper biar konsisten dan ketengah */}
-          <div className="mx-auto w-full max-w-5xl">
-            <div className="rounded-2xl border bg-white p-5 md:p-6 shadow-sm">
-              {/* TOP ACTIONS */}
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-                <div>
+        {/* CONTENT */}
+        {loading ? (
+          <div className="space-y-4">
+            <EventSkeleton />
+            <EventSkeleton />
+          </div>
+        ) : events.length === 0 ? (
+          <div className="rounded-2xl border border-dashed bg-gray-50 py-14 text-center">
+            <p className="text-gray-500 italic">
+              Belum ada event untuk voting ini
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {events.map((e) => (
+              <div
+                key={e.id}
+                className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  {e.photo_url ? (
+                    <img
+                      src={e.photo_url}
+                      alt={e.name}
+                      className="w-16 h-16 rounded-xl object-cover border bg-gray-100"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl border bg-gray-50 flex items-center justify-center text-xl">
+                      🎫
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <div className="font-semibold text-gray-900 truncate">
+                      {e.name}
+                    </div>
+                    <div className="text-sm text-gray-500 line-clamp-2">
+                      {e.bio || "Tanpa deskripsi event"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => navigate(-1)}
-                    className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
-                    type="button"
+                    onClick={() =>
+                      navigate(`/admin/voting/${id}/event-vote/${e.id}/edit`)
+                    }
+                    className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50 transition"
                   >
-                    ← Kembali
+                    Edit
                   </button>
 
-                  <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
-                    Voting Configuration
-                  </p>
-
-                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-gray-900">
-                    Event dalam Voting
-                  </h2>
-
-                  {voting && (
-                    <p className="mt-1 text-sm text-gray-500">
-                      <span className="font-medium text-gray-700">
-                        {voting.title}
-                      </span>{" "}
-                      — {events.length} event terdaftar
-                    </p>
-                  )}
+                  <button
+                    onClick={() => handleDelete(e.id)}
+                    className="rounded-xl border border-red-300 text-red-600 px-4 py-2 text-sm hover:bg-red-50 transition"
+                  >
+                    Delete
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => navigate(`/admin/voting/${id}/event-vote/add`)}
-                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 text-white px-4 py-2.5 text-sm font-semibold shadow hover:bg-blue-700 transition"
-                >
-                  + Tambah Event
-                </button>
               </div>
-
-              {/* CONTENT */}
-              {loading ? (
-                <div className="space-y-4">
-                  <EventSkeleton />
-                  <EventSkeleton />
-                </div>
-              ) : events.length === 0 ? (
-                <div className="rounded-2xl border border-dashed bg-gray-50 py-14 text-center">
-                  <p className="text-gray-500 italic">
-                    Belum ada event untuk voting ini
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {events.map((e) => (
-                    <div
-                      key={e.id}
-                      className="rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-4"
-                    >
-                      {/* LEFT */}
-                      <div className="flex items-center gap-4 min-w-0">
-                        {e.photo_url ? (
-                          <img
-                            src={e.photo_url}
-                            alt={e.name}
-                            className="w-16 h-16 rounded-xl object-cover border bg-gray-100"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-xl border bg-gray-50 flex items-center justify-center text-xl">
-                            🎫
-                          </div>
-                        )}
-
-                        <div className="min-w-0">
-                          <div className="font-semibold text-gray-900 truncate">
-                            {e.name}
-                          </div>
-                          <div className="text-sm text-gray-500 line-clamp-2">
-                            {e.bio || "Tanpa deskripsi event"}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* ACTIONS */}
-                      <div className="flex flex-wrap gap-2 justify-start md:justify-end">
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `/admin/voting/${id}/event-vote/${e.id}/edit`
-                            )
-                          }
-                          className="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-50 transition"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          onClick={() => handleDelete(e.id)}
-                          className="rounded-xl border border-red-300 text-red-600 px-4 py-2 text-sm font-medium hover:bg-red-50 transition"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            ))}
           </div>
-        </main>
-      </div>
-
-      <style>{`
-        .fade-in { animation: fadeIn .25s ease-out; }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-    </div>
+        )}
+      </main>
+    </AdminLayout>
   );
 }

@@ -44,15 +44,16 @@ export default function Welcome() {
   const featureRef = useRef(null);
 
   // ===== slider state =====
-  const images = ["/img/iklan1.png", "/img/iklan2.png", "/img/iklan3.png"];
+const images = ["/img/iklan1.png", "/img/iklan2.png", "/img/iklan3.png"];
 const [current, setCurrent] = useState(0);
 
 useEffect(() => {
   const interval = setInterval(() => {
     setCurrent((prev) => (prev + 1) % images.length);
-  }, 3000);
+  }, 3500); // lebih smooth
   return () => clearInterval(interval);
-}, []);
+}, [images.length]);
+
 
   // ========================
 
@@ -157,24 +158,43 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* RIGHT */}
-            <div data-reveal className="reveal-base">
-  <div className="overflow-hidden shadow-xl ring-1 ring-slate-200 bg-white">
-    <div className="relative h-[340px] w-full bg-white overflow-hidden">
+           <div data-reveal className="reveal-base">
+  <div className="bg-white shadow-xl ring-1 ring-slate-200 rounded-3xl p-4">
+
+    <div className="relative w-full aspect-[16/9] overflow-hidden rounded-2xl bg-slate-50">
       {images.map((img, index) => (
         <img
           key={img}
           src={img}
           alt={`iklan ${index + 1}`}
           className={
-            "absolute inset-0 h-full w-full object-contain transition-all duration-700 " +
-            (index === current ? "opacity-100" : "opacity-0")
+            "absolute inset-0 h-full w-full object-contain transition-all duration-700 ease-in-out " +
+            (index === current
+              ? "opacity-100 scale-100"
+              : "opacity-0 scale-95")
           }
         />
       ))}
     </div>
+
+    {/* DOT */}
+    <div className="mt-4 flex justify-center gap-2">
+      {images.map((_, i) => (
+        <button
+          key={i}
+          onClick={() => setCurrent(i)}
+          className={`h-2 rounded-full transition-all ${
+            i === current
+              ? "w-5 bg-blue-600"
+              : "w-2 bg-slate-300"
+          }`}
+        />
+      ))}
+    </div>
+
   </div>
 </div>
+
           </div>
         </div>
       </section>

@@ -13,22 +13,35 @@ class StudentController extends Controller
     /* =========================
        GET ALL STUDENTS
     ========================= */
-    public function index()
-    {
-        $students = User::where('role', 'student')
-            ->orderBy('created_at', 'asc')
-            ->get([
-                'id',
-                'name',
-                'username',
-                'email',
-                'fakultas',
-                'prodi',
-                'angkatan',
-            ]);
+    public function index(Request $request)
+{
+    $search = $request->query('search');
 
-        return response()->json($students);
-    }
+    $students = User::where('role', 'student')
+        ->when($search, function ($q) use ($search) {
+            $q->where(function ($sub) use ($search) {
+                $sub->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('fakultas', 'like', "%{$search}%")
+                    ->orWhere('prodi', 'like', "%{$search}%")
+                    ->orWhere('angkatan', 'like', "%{$search}%");
+            });
+        })
+        ->orderBy('created_at', 'asc')
+        ->get([
+            'id',
+            'name',
+            'username',
+            'email',
+            'fakultas',
+            'prodi',
+            'angkatan',
+        ]);
+
+    return response()->json($students);
+}
+
 
     /* =========================
        CREATE STUDENT (MANUAL)

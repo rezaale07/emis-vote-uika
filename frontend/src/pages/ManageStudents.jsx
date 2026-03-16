@@ -5,19 +5,16 @@ import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 
 /* =========================
-   SKELETON
+   SKELETON ROW
 ========================= */
 function SkeletonRow() {
   return (
     <tr className="animate-pulse border-b">
-      <td className="py-4 px-4"><div className="h-4 w-10 bg-gray-200 rounded" /></td>
-      <td className="py-4 px-4"><div className="h-4 w-40 bg-gray-200 rounded" /></td>
-      <td className="py-4 px-4"><div className="h-4 w-28 bg-gray-200 rounded" /></td>
-      <td className="py-4 px-4"><div className="h-4 w-40 bg-gray-200 rounded" /></td>
-      <td className="py-4 px-4"><div className="h-4 w-24 bg-gray-200 rounded" /></td>
-      <td className="py-4 px-4"><div className="h-4 w-24 bg-gray-200 rounded" /></td>
-      <td className="py-4 px-4"><div className="h-4 w-20 bg-gray-200 rounded" /></td>
-      <td className="py-4 px-4"><div className="h-8 w-24 bg-gray-200 rounded-xl" /></td>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <td key={i} className="py-4 px-4">
+          <div className="h-4 bg-gray-200 rounded" />
+        </td>
+      ))}
     </tr>
   );
 }
@@ -26,6 +23,10 @@ export default function ManageStudents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  /* 🔍 SEARCH */
+  const [search, setSearch] = useState("");
+
+  /* MODAL STATES */
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -33,6 +34,7 @@ export default function ManageStudents() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [excelFile, setExcelFile] = useState(null);
 
+  /* FORM STATE */
   const initialForm = {
     name: "",
     username: "",
@@ -44,15 +46,19 @@ export default function ManageStudents() {
   };
 
   const [form, setForm] = useState(initialForm);
+  const updateForm = (key, val) =>
+    setForm((prev) => ({ ...prev, [key]: val }));
 
-  const updateForm = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
-
-  const loadData = async () => {
+  /* =========================
+     LOAD DATA + SEARCH
+  ========================= */
+  const loadData = async (keyword = "") => {
     setLoading(true);
     try {
-      const res = await api.get("/students");
-      const data = Array.isArray(res.data) ? res.data : [];
-      setStudents(data);
+      const res = await api.get("/students", {
+        params: { search: keyword },
+      });
+      setStudents(Array.isArray(res.data) ? res.data : []);
     } catch {
       Swal.fire("Error", "Gagal memuat data mahasiswa", "error");
     } finally {
@@ -64,20 +70,30 @@ export default function ManageStudents() {
     loadData();
   }, []);
 
+  /* 🔍 debounce search */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadData(search);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   /* =========================
      CRUD
   ========================= */
   const addStudent = async () => {
     if (!form.name || !form.username || !form.password) {
-      return Swal.fire("Validasi", "Nama, NPM, dan password wajib diisi", "warning");
+      return Swal.fire(
+        "Validasi",
+        "Nama, NPM, dan password wajib diisi",
+        "warning"
+      );
     }
 
     try {
       await api.post("/students", {
-        name: form.name,
-        username: form.username,
+        ...form,
         email: form.email || null,
-        password: form.password,
         fakultas: form.fakultas || null,
         prodi: form.prodi || null,
         angkatan: form.angkatan || null,
@@ -85,9 +101,10 @@ export default function ManageStudents() {
 
       setShowAdd(false);
       setForm(initialForm);
-      await loadData();
+      loadData(search);
+
       Swal.fire("Berhasil", "Mahasiswa ditambahkan", "success");
-    } catch (e) {
+    } catch {
       Swal.fire("Error", "Gagal menambahkan mahasiswa", "error");
     }
   };
@@ -97,19 +114,15 @@ export default function ManageStudents() {
 
     try {
       await api.put(`/students/${selectedStudent.id}`, {
-        name: form.name,
-        username: form.username,
-        email: form.email || null,
-        password: form.password ? form.password : undefined,
-        fakultas: form.fakultas || null,
-        prodi: form.prodi || null,
-        angkatan: form.angkatan || null,
+        ...form,
+        password: form.password || undefined,
       });
 
       setShowEdit(false);
       setSelectedStudent(null);
       setForm(initialForm);
-      await loadData();
+      loadData(search);
+
       Swal.fire("Berhasil", "Data mahasiswa diperbarui", "success");
     } catch {
       Swal.fire("Error", "Gagal memperbarui mahasiswa", "error");
@@ -129,7 +142,7 @@ export default function ManageStudents() {
 
     try {
       await api.delete(`/students/${s.id}`);
-      await loadData();
+      loadData(search);
       Swal.fire("Terhapus", "Mahasiswa berhasil dihapus", "success");
     } catch {
       Swal.fire("Error", "Gagal menghapus mahasiswa", "error");
@@ -141,31 +154,28 @@ export default function ManageStudents() {
   ========================= */
   const importExcel = async () => {
     if (!excelFile) {
-      return Swal.fire("Validasi", "Silakan pilih file Excel (.xlsx)", "warning");
+      return Swal.fire(
+        "Validasi",
+        "Silakan pilih file Excel (.xlsx)",
+        "warning"
+      );
     }
 
     const formData = new FormData();
     formData.append("file", excelFile);
 
     try {
-      const res = await api.post("/students/import", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.post("/students/import", formData);
 
       setShowImport(false);
       setExcelFile(null);
-      await loadData();
+      loadData(search);
 
       Swal.fire({
         title: "Import Selesai",
         html: `
-          <p>✅ Berhasil: <b>${res.data.success ?? 0}</b></p>
-          <p>❌ Gagal: <b>${res.data.failed ?? 0}</b></p>
-          ${
-            Array.isArray(res.data.errors) && res.data.errors.length
-              ? `<hr><pre style="text-align:left;white-space:pre-wrap">${res.data.errors.join("\n")}</pre>`
-              : ""
-          }
+          <p>✅ Berhasil: <b>${res.data.success}</b></p>
+          <p>❌ Gagal: <b>${res.data.failed}</b></p>
         `,
         icon: "success",
       });
@@ -179,7 +189,7 @@ export default function ManageStudents() {
       <main className="bg-white rounded-2xl border shadow-sm p-6">
 
         {/* HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.25em] text-blue-600 uppercase">
               Students
@@ -189,7 +199,15 @@ export default function ManageStudents() {
             </h2>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              type="text"
+              placeholder="Cari nama, NPM, email, fakultas, prodi, angkatan..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full sm:w-80 rounded-xl border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
+            />
+
             <button
               onClick={() => setShowImport(true)}
               className="rounded-xl border px-4 py-2.5 text-sm font-semibold hover:bg-gray-50"
@@ -209,19 +227,19 @@ export default function ManageStudents() {
           </div>
         </div>
 
-        {/* ===== DESKTOP TABLE ===== */}
-        <div className="hidden md:block overflow-x-auto rounded-xl border">
+        {/* TABLE */}
+        <div className="overflow-x-auto rounded-xl border">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
-                <th className="py-3 px-4 text-left w-12">No</th>
-                <th className="py-3 px-4 text-left">Nama</th>
-                <th className="py-3 px-4 text-left">NPM</th>
-                <th className="py-3 px-4 text-left">Email</th>
-                <th className="py-3 px-4 text-left">Fakultas</th>
-                <th className="py-3 px-4 text-left">Prodi</th>
-                <th className="py-3 px-4 text-left">Angkatan</th>
-                <th className="py-3 px-4 text-left">Aksi</th>
+                <th>No</th>
+                <th>Nama</th>
+                <th>NPM</th>
+                <th>Email</th>
+                <th>Fakultas</th>
+                <th>Prodi</th>
+                <th>Angkatan</th>
+                <th>Aksi</th>
               </tr>
             </thead>
 
@@ -234,43 +252,34 @@ export default function ManageStudents() {
               ) : students.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="py-8 text-center text-gray-500">
-                    Belum ada mahasiswa
+                    Data tidak ditemukan
                   </td>
                 </tr>
               ) : (
-                students.map((s, index) => (
+                students.map((s, i) => (
                   <tr key={s.id} className="border-t hover:bg-gray-50">
-                    <td className="py-3 px-4 text-gray-500">{index + 1}</td>
-                    <td className="py-3 px-4">{s.name}</td>
-                    <td className="px-4">{s.username}</td>
-                    <td className="px-4">{s.email || "-"}</td>
-                    <td className="px-4">{s.fakultas || "-"}</td>
-                    <td className="px-4">{s.prodi || "-"}</td>
-                    <td className="px-4">{s.angkatan || "-"}</td>
-                    <td className="px-4">
+                    <td>{i + 1}</td>
+                    <td>{s.name}</td>
+                    <td>{s.username}</td>
+                    <td>{s.email || "-"}</td>
+                    <td>{s.fakultas || "-"}</td>
+                    <td>{s.prodi || "-"}</td>
+                    <td>{s.angkatan || "-"}</td>
+                    <td>
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
                             setSelectedStudent(s);
-                            setForm({
-                              name: s.name || "",
-                              username: s.username || "",
-                              email: s.email || "",
-                              password: "",
-                              fakultas: s.fakultas || "",
-                              prodi: s.prodi || "",
-                              angkatan: s.angkatan || "",
-                            });
+                            setForm({ ...s, password: "" });
                             setShowEdit(true);
                           }}
-                          className="px-3 py-1.5 rounded-lg border hover:bg-gray-100"
+                          className="px-3 py-1.5 rounded-lg border"
                         >
                           Edit
                         </button>
-
                         <button
                           onClick={() => deleteStudent(s)}
-                          className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50"
+                          className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600"
                         >
                           Hapus
                         </button>
@@ -282,70 +291,7 @@ export default function ManageStudents() {
             </tbody>
           </table>
         </div>
-
-        {/* ===== MOBILE CARD ===== */}
-        <div className="md:hidden space-y-4">
-          {loading ? (
-            <div className="space-y-3">
-              <div className="h-20 rounded-2xl bg-slate-100 animate-pulse" />
-              <div className="h-20 rounded-2xl bg-slate-100 animate-pulse" />
-            </div>
-          ) : students.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-gray-50 py-10 text-center text-gray-500">
-              Belum ada mahasiswa
-            </div>
-          ) : (
-            students.map((s, index) => (
-              <div
-                key={s.id}
-                className="rounded-2xl border p-4 shadow-sm flex justify-between items-start gap-4"
-              >
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">No {index + 1}</p>
-                  <p className="font-semibold text-gray-900">{s.name}</p>
-                  <p className="text-sm text-gray-500">{s.username}</p>
-                  <p className="text-sm text-gray-500">{s.email || "-"}</p>
-                  <p className="text-sm text-gray-500">
-                    {s.fakultas || "-"} • {s.prodi || "-"}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Angkatan {s.angkatan || "-"}
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedStudent(s);
-                      setForm({
-                        name: s.name || "",
-                        username: s.username || "",
-                        email: s.email || "",
-                        password: "",
-                        fakultas: s.fakultas || "",
-                        prodi: s.prodi || "",
-                        angkatan: s.angkatan || "",
-                      });
-                      setShowEdit(true);
-                    }}
-                    className="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => deleteStudent(s)}
-                    className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600 text-sm hover:bg-red-50"
-                  >
-                    Hapus
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </main>
-
       {/* MODAL ADD */}
       {showAdd && (
         <Modal title="Tambah Mahasiswa" onClose={() => setShowAdd(false)}>
